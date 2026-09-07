@@ -35,12 +35,13 @@ src/
   podcasts/                    GET /podcasts — static mock data (no DB)
   search/                      GET /api/search, /api/search/moods — static mock data (no DB)
   ai-search/                   POST /api/ai-search — deterministic mock "AI mix" generator (no DB, no LLM call)
+  library/                     Song/Artist/Playlist entities, seeded on boot, GET /api/library
   common/                      Global exception filter, tax lookup table, email masking helper
 ```
 
 Modules marked "static mock data" return hardcoded arrays instead of querying Postgres — they exist to unblock the
-frontend UI and are expected to be replaced with real data sources later. `users`, `plans`, `subscriptions`, and
-`orders` are the only tables backed by Postgres today.
+frontend UI and are expected to be replaced with real data sources later. `users`, `plans`, `subscriptions`,
+`orders`, and `library` (`songs`/`artists`/`playlists`) are the tables backed by Postgres today.
 
 ## Prerequisites
 
@@ -151,6 +152,12 @@ Unguarded routes are marked "Public"; everything else requires the `Authorizatio
 > A production integration should call the Google Play Developer API's `purchases.subscriptions.get` to verify the
 > purchase token server-side before marking an order as paid.
 
+### Library
+
+| Method | Path | Auth | Description |
+| --- | --- | --- | --- |
+| GET | `/api/library` | Required | `{ songs, artists, playlists }` from Postgres. Seeded automatically on boot by `LibraryService.onModuleInit` (idempotent — only inserts rows that don't already exist). |
+
 ### Subscription
 
 | Method | Path | Auth | Description |
@@ -180,6 +187,9 @@ matches the exception (e.g. `401` for auth failures, `404` for missing resources
   `createdAt`, `paidAt?`.
 - **`Subscription`** — `id`, `userId` (unique), `planId`, `status` (`active`/`expired`/`canceled`), `startedAt`,
   `expiresAt?`.
+- **`Song`** — `id`, `title`, `artistNames` (JSON string array), `artworkUrl?`, `durationSeconds`.
+- **`Artist`** — `id`, `name`, `avatarUrl?`.
+- **`Playlist`** — `id`, `title`, `curatorNames` (JSON string array), `songCount`, `durationLabel`, `artworkUrl?`.
 
 ## Security notes
 
@@ -192,5 +202,5 @@ matches the exception (e.g. `401` for auth failures, `404` for missing resources
 
 ## Status
 
-Auth, user provisioning, plans, profile, checkout, and subscriptions are backed by Postgres. Home, podcasts, and
-search/AI-search currently return static/mock data and are follow-up work to wire up to a real catalog.
+Auth, user provisioning, plans, profile, checkout, subscriptions, and library are backed by Postgres. Home, podcasts,
+and search/AI-search currently return static/mock data and are follow-up work to wire up to a real catalog.

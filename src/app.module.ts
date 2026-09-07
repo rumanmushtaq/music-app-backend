@@ -13,6 +13,7 @@ import { ProfileModule } from './profile/profile.module';
 import { CheckoutModule } from './checkout/checkout.module';
 import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { AiSearchModule } from './ai-search/ai-search.module';
+import { LibraryModule } from './library/library.module';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { AiSearchModule } from './ai-search/ai-search.module';
     CheckoutModule,
     SubscriptionsModule,
     AiSearchModule,
+    LibraryModule,
   ],
   controllers: [MeController],
 })
