@@ -1,5 +1,7 @@
 import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, Unique } from 'typeorm';
 
+export type ThemePreference = 'system' | 'light' | 'dark';
+
 @Entity('users')
 @Unique(['clerkId'])
 export class User {
@@ -21,8 +23,8 @@ export class User {
   @Column({ default: true })
   notificationsEnabled!: boolean;
 
-  @Column({ default: false })
-  darkModeEnabled!: boolean;
+  @Column({ default: 'system' })
+  themePreference!: ThemePreference;
 
   @Column({ default: 'English' })
   musicLanguage!: string;
