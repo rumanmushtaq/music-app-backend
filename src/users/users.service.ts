@@ -41,7 +41,7 @@ export class UsersService {
 
   async updateProfile(
     clerkId: string,
-    patch: Partial<Pick<User, 'name' | 'avatarUrl' | 'notificationsEnabled' | 'darkModeEnabled' | 'musicLanguage'>>,
+    patch: Partial<Pick<User, 'name' | 'avatarUrl' | 'notificationsEnabled' | 'themePreference' | 'musicLanguage'>>,
   ): Promise<User> {
     const user = await this.findByClerkIdOrThrow(clerkId);
     Object.assign(user, patch);
