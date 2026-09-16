@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { buildDatabaseConfig } from './config/database.config';
+import { RedisModule } from './redis/redis.module';
 import { MeController } from './auth/me.controller';
 import { UsersModule } from './users/users.module';
 import { HomeModule } from './home/home.module';
@@ -20,6 +21,7 @@ import { MusicLanguagesModule } from './music-languages/music-languages.module';
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     TypeOrmModule.forRoot(buildDatabaseConfig()),
+    RedisModule,
     UsersModule,
     HomeModule,
     PodcastsModule,
