@@ -1,9 +1,10 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
 import { MusicLanguage } from './music-language.entity';
 import { MusicLanguagesMessages } from '../constants/messages';
+import { isUniqueViolation } from '../common/db-errors.util';
 
 @Injectable()
 export class MusicLanguagesService {
@@ -26,13 +27,27 @@ export class MusicLanguagesService {
 
   async create(name: string): Promise<MusicLanguage> {
     const language = this.musicLanguages.create({ name });
-    return this.musicLanguages.save(language);
+    try {
+      return await this.musicLanguages.save(language);
+    } catch (error) {
+      if (isUniqueViolation(error)) {
+        throw new ConflictException(MusicLanguagesMessages.musicLanguageAlreadyExists(name));
+      }
+      throw error;
+    }
   }
 
   async update(id: string, name: string): Promise<MusicLanguage> {
     const language = await this.getById(id);
     language.name = name;
-    return this.musicLanguages.save(language);
+    try {
+      return await this.musicLanguages.save(language);
+    } catch (error) {
+      if (isUniqueViolation(error)) {
+        throw new ConflictException(MusicLanguagesMessages.musicLanguageAlreadyExists(name));
+      }
+      throw error;
+    }
   }
 
   async remove(id: string): Promise<void> {
