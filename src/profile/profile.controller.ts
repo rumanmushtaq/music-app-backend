@@ -7,7 +7,7 @@ import { User } from '../users/user.entity';
 import { UsersService } from '../users/users.service';
 
 type UpdateProfileBody = Partial<
-  Pick<User, 'name' | 'avatarUrl' | 'notificationsEnabled' | 'themePreference' | 'musicLanguage'>
+  Pick<User, 'name' | 'avatarUrl' | 'notificationsEnabled' | 'themePreference' | 'musicLanguageId'>
 >;
 
 @Controller('api')
@@ -53,7 +53,7 @@ export class ProfileController {
       avatarUrl: user.avatarUrl ?? null,
       notificationsEnabled: user.notificationsEnabled,
       themePreference: user.themePreference,
-      musicLanguage: user.musicLanguage,
+      musicLanguageId: user.musicLanguageId ?? null,
       currentPlan: { id: plan.id, name: plan.name, tier: plan.tier },
     };
   }

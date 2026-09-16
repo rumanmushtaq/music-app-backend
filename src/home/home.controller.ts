@@ -8,7 +8,7 @@ export class HomeController {
   constructor(private readonly homeService: HomeService) {}
 
   @Get('home')
-  getHome(): HomeFeed {
+  getHome(): Promise<HomeFeed> {
     return this.homeService.getHomeFeed();
   }
 }

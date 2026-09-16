@@ -7,13 +7,14 @@ import { Order } from '../orders/order.entity';
 import { Song } from '../library/song.entity';
 import { Artist } from '../library/artist.entity';
 import { Playlist } from '../library/playlist.entity';
+import { MusicLanguage } from '../music-languages/music-language.entity';
 
 export function buildDatabaseConfig(): TypeOrmModuleOptions {
   const url = process.env.DATABASE_URL;
 
   const base: TypeOrmModuleOptions = {
     type: 'postgres',
-    entities: [User, Plan, Subscription, Order, Song, Artist, Playlist],
+    entities: [User, Plan, Subscription, Order, Song, Artist, Playlist, MusicLanguage],
     synchronize: process.env.NODE_ENV !== 'production',
   };
 

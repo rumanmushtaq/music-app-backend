@@ -3,6 +3,7 @@ import { BadRequestException, Controller, Get, Query, UseGuards } from '@nestjs/
 import { ClerkAuthGuard } from '../auth/clerk-auth.guard';
 import { SearchResultType } from './search.types';
 import { SearchService } from './search.service';
+import { SearchMessages } from '../constants/messages';
 
 @Controller('api/search')
 @UseGuards(ClerkAuthGuard)
@@ -22,7 +23,7 @@ export class SearchController {
     @Query('cursor') cursor?: string,
   ) {
     if (!q || !q.trim()) {
-      throw new BadRequestException('q is required');
+      throw new BadRequestException(SearchMessages.queryRequired);
     }
     const parsedLimit = Number(limit);
     const safeLimit = Number.isFinite(parsedLimit) && parsedLimit > 0 ? parsedLimit : 20;

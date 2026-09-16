@@ -1,4 +1,10 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  InternalServerErrorException,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
@@ -10,6 +16,7 @@ import { lookupTaxRate } from '../common/tax.util';
 import { maskEmail } from '../common/mask-email.util';
 import { PaymentFailedException } from '../common/payment-failed.exception';
 import { GooglePlayVerificationService } from './google-play-verification.service';
+import { CheckoutMessages } from '../constants/messages';
 
 type Money = number;
 
@@ -19,6 +26,8 @@ function round2(value: number): Money {
 
 @Injectable()
 export class CheckoutService {
+  private readonly logger = new Logger(CheckoutService.name);
+
   constructor(
     @InjectRepository(Order)
     private readonly orders: Repository<Order>,
@@ -95,45 +104,58 @@ export class CheckoutService {
     const { order, user } = await this.loadOwnedOrder(clerkId, orderId);
 
     if (order.status !== 'pending') {
-      throw new BadRequestException(`Order is already "${order.status}"`);
+      throw new BadRequestException(CheckoutMessages.orderAlreadyStatus(order.status));
     }
 
     const verification = await this.googlePlayVerification.verifyPurchaseToken(order.planId, paymentToken);
     if (!verification.valid) {
       order.status = 'failed';
       await this.orders.save(order);
-      throw new PaymentFailedException('Payment verification failed');
+      throw new PaymentFailedException(CheckoutMessages.paymentVerificationFailed);
     }
 
     order.status = 'paid';
     order.paidAt = new Date();
     order.paymentProvider = paymentProvider;
     order.paymentAccountEmailMasked = maskEmail(email);
-    await this.orders.save(order);
 
-    const plan = await this.plansService.getById(order.planId);
-    const startedAt = new Date();
-    const expiresAt = plan.durationDays
-      ? new Date(startedAt.getTime() + plan.durationDays * 24 * 60 * 60 * 1000)
-      : null;
+    // The payment provider has already confirmed the charge at this point, so a
+    // failure below must not surface as a generic 500 indistinguishable from a
+    // pre-payment bug - the customer was charged and our records need a
+    // reconciliation look, so log that context loudly before rethrowing.
+    try {
+      await this.orders.save(order);
 
-    let subscription = await this.subscriptions.findOne({ where: { userId: user.id } });
-    if (!subscription) {
-      subscription = this.subscriptions.create({ userId: user.id });
+      const plan = await this.plansService.getById(order.planId);
+      const startedAt = new Date();
+      const expiresAt = plan.durationDays
+        ? new Date(startedAt.getTime() + plan.durationDays * 24 * 60 * 60 * 1000)
+        : null;
+
+      let subscription = await this.subscriptions.findOne({ where: { userId: user.id } });
+      if (!subscription) {
+        subscription = this.subscriptions.create({ userId: user.id });
+      }
+      subscription.planId = plan.id;
+      subscription.status = 'active';
+      subscription.startedAt = startedAt;
+      subscription.expiresAt = expiresAt;
+      await this.subscriptions.save(subscription);
+
+      await this.usersService.setCurrentPlan(clerkId, plan.id);
+
+      return {
+        orderId: order.id,
+        status: 'paid' as const,
+        subscription: { planId: plan.id, startedAt, expiresAt },
+      };
+    } catch (error) {
+      this.logger.error(
+        `Payment for order ${order.id} (user ${user.id}) was verified but post-payment update failed - needs manual reconciliation`,
+        error instanceof Error ? error.stack : error,
+      );
+      throw new InternalServerErrorException(CheckoutMessages.postPaymentUpdateFailed(order.id));
     }
-    subscription.planId = plan.id;
-    subscription.status = 'active';
-    subscription.startedAt = startedAt;
-    subscription.expiresAt = expiresAt;
-    await this.subscriptions.save(subscription);
-
-    await this.usersService.setCurrentPlan(clerkId, plan.id);
-
-    return {
-      orderId: order.id,
-      status: 'paid' as const,
-      subscription: { planId: plan.id, startedAt, expiresAt },
-    };
   }
 
   async getOrder(clerkId: string, orderId: string) {
@@ -157,7 +179,7 @@ export class CheckoutService {
     const user = await this.usersService.findByClerkIdOrThrow(clerkId);
     const order = await this.orders.findOne({ where: { id: orderId } });
     if (!order || order.userId !== user.id) {
-      throw new NotFoundException(`Order "${orderId}" not found`);
+      throw new NotFoundException(CheckoutMessages.orderNotFound(orderId));
     }
     return { order, user };
   }

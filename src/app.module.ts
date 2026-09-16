@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { buildDatabaseConfig } from './config/database.config';
+import { RedisModule } from './redis/redis.module';
 import { MeController } from './auth/me.controller';
 import { UsersModule } from './users/users.module';
 import { HomeModule } from './home/home.module';
@@ -14,11 +15,13 @@ import { CheckoutModule } from './checkout/checkout.module';
 import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { AiSearchModule } from './ai-search/ai-search.module';
 import { LibraryModule } from './library/library.module';
+import { MusicLanguagesModule } from './music-languages/music-languages.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     TypeOrmModule.forRoot(buildDatabaseConfig()),
+    RedisModule,
     UsersModule,
     HomeModule,
     PodcastsModule,
@@ -29,6 +32,7 @@ import { LibraryModule } from './library/library.module';
     SubscriptionsModule,
     AiSearchModule,
     LibraryModule,
+    MusicLanguagesModule,
   ],
   controllers: [MeController],
 })

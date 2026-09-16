@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 
+import { RedisService } from '../redis/redis.service';
 import {
   BeatItemData,
   CategoryChipData,
@@ -104,10 +105,15 @@ const nowPlaying = {
   gradient: ['#FE3030', '#FF4E88'] as [string, string],
 };
 
+const HOME_FEED_CACHE_KEY = 'home:feed';
+const HOME_FEED_CACHE_TTL_SECONDS = 60 * 60;
+
 @Injectable()
 export class HomeService {
-  getHomeFeed(): HomeFeed {
-    return {
+  constructor(private readonly redisService: RedisService) {}
+
+  getHomeFeed(): Promise<HomeFeed> {
+    return this.redisService.getOrSet(HOME_FEED_CACHE_KEY, HOME_FEED_CACHE_TTL_SECONDS, () => ({
       categories,
       quickPlayItems,
       dailyMixItems,
@@ -115,6 +121,6 @@ export class HomeService {
       untouchedBeats,
       topVoices,
       nowPlaying,
-    };
+    }));
   }
 }

@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
 import { Plan } from './plan.entity';
+import { PlansMessages } from '../constants/messages';
 
 const SEED_PLANS: Plan[] = [
   {
@@ -67,7 +68,7 @@ export class PlansService implements OnModuleInit {
   async getById(id: string): Promise<Plan> {
     const plan = await this.plans.findOne({ where: { id } });
     if (!plan) {
-      throw new NotFoundException(`Plan "${id}" not found`);
+      throw new NotFoundException(PlansMessages.planNotFound(id));
     }
     return plan;
   }

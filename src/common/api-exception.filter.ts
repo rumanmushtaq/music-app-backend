@@ -1,28 +1,39 @@
-import { ArgumentsHost, Catch, ExceptionFilter, HttpException, HttpStatus } from '@nestjs/common';
+import { ArgumentsHost, Catch, ExceptionFilter, HttpException, HttpStatus, Logger } from '@nestjs/common';
 import type { Response } from 'express';
+
+import { CommonMessages } from '../constants/messages';
 
 @Catch()
 export class ApiExceptionFilter implements ExceptionFilter {
+  private readonly logger = new Logger('ApiExceptionFilter');
+
   catch(exception: unknown, host: ArgumentsHost): void {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
 
-    const status = exception instanceof HttpException ? exception.getStatus() : HttpStatus.INTERNAL_SERVER_ERROR;
-    const code = exception instanceof HttpException ? exception.constructor.name : 'InternalServerError';
-
-    let message = 'Unexpected error';
     if (exception instanceof HttpException) {
+      const status = exception.getStatus();
+      const code = exception.constructor.name;
       const body = exception.getResponse();
+
+      let message: string = CommonMessages.unexpectedError;
       if (typeof body === 'string') {
         message = body;
       } else if (typeof body === 'object' && body && 'message' in body) {
         const raw = (body as { message: string | string[] }).message;
         message = Array.isArray(raw) ? raw.join(', ') : raw;
       }
-    } else if (exception instanceof Error) {
-      message = exception.message;
+
+      response.status(status).json({ error: { code, message } });
+      return;
     }
 
-    response.status(status).json({ error: { code, message } });
+    // A real bug, not a deliberate HttpException - never forward its message to the
+    // client (it can leak internal details like DB constraint text), but keep the
+    // full error in server logs so it's still debuggable.
+    this.logger.error(exception instanceof Error ? exception.stack ?? exception.message : exception);
+    response
+      .status(HttpStatus.INTERNAL_SERVER_ERROR)
+      .json({ error: { code: 'InternalServerError', message: CommonMessages.unexpectedError } });
   }
 }
