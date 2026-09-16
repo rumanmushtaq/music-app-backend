@@ -14,6 +14,7 @@ import { CheckoutModule } from './checkout/checkout.module';
 import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { AiSearchModule } from './ai-search/ai-search.module';
 import { LibraryModule } from './library/library.module';
+import { MusicLanguagesModule } from './music-languages/music-languages.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { LibraryModule } from './library/library.module';
     SubscriptionsModule,
     AiSearchModule,
     LibraryModule,
+    MusicLanguagesModule,
   ],
   controllers: [MeController],
 })

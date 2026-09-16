@@ -2,6 +2,8 @@ import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from
 import { createClerkClient, verifyToken } from '@clerk/backend';
 import type { Request } from 'express';
 
+import { AuthMessages } from '../constants/messages';
+
 export type AuthClaims = {
   userId: string;
   email: string;
@@ -25,7 +27,7 @@ export class ClerkAuthGuard implements CanActivate {
     const token = header?.startsWith('Bearer ') ? header.slice('Bearer '.length) : undefined;
 
     if (!token) {
-      throw new UnauthorizedException('Missing bearer token');
+      throw new UnauthorizedException(AuthMessages.missingBearerToken);
     }
 
     try {
@@ -41,7 +43,7 @@ export class ClerkAuthGuard implements CanActivate {
       request.auth = { userId: payload.sub, email, sessionId: payload.sid };
       return true;
     } catch {
-      throw new UnauthorizedException('Invalid or expired token');
+      throw new UnauthorizedException(AuthMessages.invalidOrExpiredToken);
     }
   }
 }

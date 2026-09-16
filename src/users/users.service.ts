@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
 import { User } from './user.entity';
+import { UsersMessages } from '../constants/messages';
 
 export const FREE_PLAN_ID = 'free';
 
@@ -30,7 +31,7 @@ export class UsersService {
   async findByClerkIdOrThrow(clerkId: string): Promise<User> {
     const user = await this.users.findOne({ where: { clerkId } });
     if (!user) {
-      throw new NotFoundException('User not found');
+      throw new NotFoundException(UsersMessages.userNotFound);
     }
     return user;
   }
@@ -41,7 +42,7 @@ export class UsersService {
 
   async updateProfile(
     clerkId: string,
-    patch: Partial<Pick<User, 'name' | 'avatarUrl' | 'notificationsEnabled' | 'themePreference' | 'musicLanguage'>>,
+    patch: Partial<Pick<User, 'name' | 'avatarUrl' | 'notificationsEnabled' | 'themePreference' | 'musicLanguageId'>>,
   ): Promise<User> {
     const user = await this.findByClerkIdOrThrow(clerkId);
     Object.assign(user, patch);

@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 
 import { Subscription } from './subscription.entity';
 import { UsersService } from '../users/users.service';
+import { SubscriptionsMessages } from '../constants/messages';
 
 const FREE_PLAN_ID = 'free';
 
@@ -36,7 +37,7 @@ export class SubscriptionsService {
     const subscription = await this.subscriptions.findOne({ where: { userId: user.id } });
 
     if (!subscription || subscription.status !== 'active') {
-      throw new BadRequestException('No active subscription to cancel');
+      throw new BadRequestException(SubscriptionsMessages.noActiveSubscription);
     }
 
     subscription.status = 'canceled';

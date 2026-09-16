@@ -6,6 +6,7 @@ import {
   PodcastDetailData,
   PodcastFeedItemData,
 } from './podcast.types';
+import { PodcastsMessages } from '../constants/messages';
 
 const podcastCategories: PodcastCategoryData[] = [
   { id: 'virus', emoji: '🦠', label: 'Virus' },
@@ -108,7 +109,7 @@ export class PodcastsService {
   getPodcastDetail(id: string): PodcastDetailData {
     const podcast = podcastDetails.find((item) => item.id === id);
     if (!podcast) {
-      throw new NotFoundException(`Podcast "${id}" not found`);
+      throw new NotFoundException(PodcastsMessages.podcastNotFound(id));
     }
     return podcast;
   }
@@ -117,7 +118,7 @@ export class PodcastsService {
     const podcast = this.getPodcastDetail(podcastId);
     const episode = podcast.episodes.find((item) => item.id === episodeId);
     if (!episode) {
-      throw new NotFoundException(`Episode "${episodeId}" not found on podcast "${podcastId}"`);
+      throw new NotFoundException(PodcastsMessages.episodeNotFound(episodeId, podcastId));
     }
     return episode;
   }

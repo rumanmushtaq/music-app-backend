@@ -10,6 +10,7 @@ import { lookupTaxRate } from '../common/tax.util';
 import { maskEmail } from '../common/mask-email.util';
 import { PaymentFailedException } from '../common/payment-failed.exception';
 import { GooglePlayVerificationService } from './google-play-verification.service';
+import { CheckoutMessages } from '../constants/messages';
 
 type Money = number;
 
@@ -95,14 +96,14 @@ export class CheckoutService {
     const { order, user } = await this.loadOwnedOrder(clerkId, orderId);
 
     if (order.status !== 'pending') {
-      throw new BadRequestException(`Order is already "${order.status}"`);
+      throw new BadRequestException(CheckoutMessages.orderAlreadyStatus(order.status));
     }
 
     const verification = await this.googlePlayVerification.verifyPurchaseToken(order.planId, paymentToken);
     if (!verification.valid) {
       order.status = 'failed';
       await this.orders.save(order);
-      throw new PaymentFailedException('Payment verification failed');
+      throw new PaymentFailedException(CheckoutMessages.paymentVerificationFailed);
     }
 
     order.status = 'paid';
@@ -157,7 +158,7 @@ export class CheckoutService {
     const user = await this.usersService.findByClerkIdOrThrow(clerkId);
     const order = await this.orders.findOne({ where: { id: orderId } });
     if (!order || order.userId !== user.id) {
-      throw new NotFoundException(`Order "${orderId}" not found`);
+      throw new NotFoundException(CheckoutMessages.orderNotFound(orderId));
     }
     return { order, user };
   }
