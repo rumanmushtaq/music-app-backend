@@ -1,17 +1,39 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
 import { MusicLanguage } from './music-language.entity';
-import { MusicLanguagesMessages } from '../constants/messages';
+import { MusicLanguagesMessages } from '../constants/message';
 import { isUniqueViolation } from '../common/db-errors.util';
 
+const SEED_LANGUAGE_NAMES = [
+  'English',
+  'Hindi',
+  'Punjabi',
+  'Tamil',
+  'Telugu',
+  'Bengali',
+  'Marathi',
+  'Gujarati',
+  'Kannada',
+  'Malayalam',
+];
+
 @Injectable()
-export class MusicLanguagesService {
+export class MusicLanguagesService implements OnModuleInit {
   constructor(
     @InjectRepository(MusicLanguage)
     private readonly musicLanguages: Repository<MusicLanguage>,
   ) {}
+
+  async onModuleInit(): Promise<void> {
+    for (const name of SEED_LANGUAGE_NAMES) {
+      const existing = await this.musicLanguages.findOne({ where: { name } });
+      if (!existing) {
+        await this.musicLanguages.save(this.musicLanguages.create({ name }));
+      }
+    }
+  }
 
   async getAll(): Promise<MusicLanguage[]> {
     return this.musicLanguages.find({ order: { name: 'ASC' } });
