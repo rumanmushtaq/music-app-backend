@@ -3,10 +3,9 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
 import { User } from './user.entity';
-import { UsersMessages } from '../constants/messages';
+import { UsersMessages } from '../constants/message';
+import { PLAN_IDS } from '../constants/plan';
 import { isUniqueViolation } from '../common/db-errors.util';
-
-export const FREE_PLAN_ID = 'free';
 
 @Injectable()
 export class UsersService {
@@ -49,7 +48,7 @@ export class UsersService {
   }
 
   effectivePlanId(user: User): string {
-    return user.currentPlanId ?? FREE_PLAN_ID;
+    return user.currentPlanId ?? PLAN_IDS.free;
   }
 
   async updateProfile(

@@ -4,9 +4,8 @@ import { Repository } from 'typeorm';
 
 import { Subscription } from './subscription.entity';
 import { UsersService } from '../users/users.service';
-import { SubscriptionsMessages } from '../constants/messages';
-
-const FREE_PLAN_ID = 'free';
+import { SubscriptionsMessages } from '../constants/message';
+import { PLAN_IDS } from '../constants/plan';
 
 @Injectable()
 export class SubscriptionsService {
@@ -21,7 +20,7 @@ export class SubscriptionsService {
     const subscription = await this.subscriptions.findOne({ where: { userId: user.id } });
 
     if (!subscription) {
-      return { planId: FREE_PLAN_ID, status: 'active' as const, startedAt: null, expiresAt: null };
+      return { planId: PLAN_IDS.free, status: 'active' as const, startedAt: null, expiresAt: null };
     }
 
     return {

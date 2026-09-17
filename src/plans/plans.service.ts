@@ -3,11 +3,12 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
 import { Plan } from './plan.entity';
-import { PlansMessages } from '../constants/messages';
+import { PLAN_IDS } from '../constants/plan';
+import { PlansMessages } from '../constants/message';
 
 const SEED_PLANS: Plan[] = [
   {
-    id: 'free',
+    id: PLAN_IDS.free,
     tier: 'free',
     name: 'Musinto Free',
     durationLabel: 'Unlimited',
@@ -18,7 +19,7 @@ const SEED_PLANS: Plan[] = [
     features: ['Ad-Supported Streaming', 'Limited Skips'],
   },
   {
-    id: 'pro',
+    id: PLAN_IDS.pro,
     tier: 'pro',
     name: 'Musinto Pro',
     durationLabel: '1 Month',
@@ -29,7 +30,7 @@ const SEED_PLANS: Plan[] = [
     features: ['Unlimited Music', "Ad's Free Experience", 'Offline Downloads'],
   },
   {
-    id: 'black',
+    id: PLAN_IDS.black,
     tier: 'black',
     name: 'Musinto Black',
     durationLabel: '1 Year',
@@ -41,8 +42,6 @@ const SEED_PLANS: Plan[] = [
   },
 ];
 
-export const FREE_PLAN_ID = 'free';
-
 @Injectable()
 export class PlansService implements OnModuleInit {
   constructor(
@@ -53,7 +52,9 @@ export class PlansService implements OnModuleInit {
   async onModuleInit(): Promise<void> {
     for (const plan of SEED_PLANS) {
       const existing = await this.plans.findOne({ where: { id: plan.id } });
-      if (!existing) {
+      if (existing) {
+        await this.plans.save(this.plans.merge(existing, plan));
+      } else {
         await this.plans.save(this.plans.create(plan));
       }
     }
@@ -62,7 +63,7 @@ export class PlansService implements OnModuleInit {
   async getAll(): Promise<Plan[]> {
     const order = ['free', 'pro', 'black'];
     const plans = await this.plans.find();
-    return plans.sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id));
+    return plans.sort((a, b) => order.indexOf(a.tier) - order.indexOf(b.tier));
   }
 
   async getById(id: string): Promise<Plan> {
