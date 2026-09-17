@@ -1,0 +1,1 @@
+export const PROFILE_CACHE_TTL_SECONDS = 5 * 60;
