@@ -2,7 +2,7 @@ import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from
 import { createClerkClient, verifyToken } from '@clerk/backend';
 import type { Request } from 'express';
 
-import { AuthMessages } from '../constants/messages';
+import { AuthMessages } from '../constants/message';
 
 export type AuthClaims = {
   userId: string;

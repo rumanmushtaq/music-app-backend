@@ -16,7 +16,7 @@ import { lookupTaxRate } from '../common/tax.util';
 import { maskEmail } from '../common/mask-email.util';
 import { PaymentFailedException } from '../common/payment-failed.exception';
 import { GooglePlayVerificationService } from './google-play-verification.service';
-import { CheckoutMessages } from '../constants/messages';
+import { CheckoutMessages } from '../constants/message';
 
 type Money = number;
 

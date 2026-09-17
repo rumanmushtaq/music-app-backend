@@ -1,9 +1,0 @@
-export { CommonMessages } from './common.messages';
-export { AuthMessages } from './auth.messages';
-export { CheckoutMessages } from './checkout.messages';
-export { MusicLanguagesMessages } from './music-languages.messages';
-export { PlansMessages } from './plans.messages';
-export { PodcastsMessages } from './podcasts.messages';
-export { SearchMessages } from './search.messages';
-export { SubscriptionsMessages } from './subscriptions.messages';
-export { UsersMessages } from './users.messages';

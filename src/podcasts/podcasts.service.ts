@@ -6,7 +6,7 @@ import {
   PodcastDetailData,
   PodcastFeedItemData,
 } from './podcast.types';
-import { PodcastsMessages } from '../constants/messages';
+import { PodcastsMessages } from '../constants/message';
 
 const podcastCategories: PodcastCategoryData[] = [
   { id: 'virus', emoji: '🦠', label: 'Virus' },

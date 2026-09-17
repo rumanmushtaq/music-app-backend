@@ -3,7 +3,7 @@ import { BadRequestException, Controller, Get, Query, UseGuards } from '@nestjs/
 import { ClerkAuthGuard } from '../auth/clerk-auth.guard';
 import { SearchResultType } from './search.types';
 import { SearchService } from './search.service';
-import { SearchMessages } from '../constants/messages';
+import { SearchMessages } from '../constants/message';
 
 @Controller('api/search')
 @UseGuards(ClerkAuthGuard)
