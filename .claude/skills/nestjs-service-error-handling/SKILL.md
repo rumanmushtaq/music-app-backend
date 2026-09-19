@@ -10,9 +10,14 @@ description: Use when a NestJS service method in this repo needs try/catch error
 The read-heavy services in this repo (`library.service.ts`, `home.service.ts`, `profile.service.ts`,
 `search.service.ts`) follow the same shape: a `Logger`, try/catch around each public method, and a
 private `toHttpException` helper that turns unexpected errors into a logged 500 while letting
-intentional `HttpException`s (like `NotFoundException`) pass through untouched. There's no global
-exception filter — each service shapes its own errors. This is the pattern to add to a service that
-doesn't have it yet.
+intentional `HttpException`s (like `NotFoundException`) pass through untouched. This is the pattern
+to add to a service that doesn't have it yet.
+
+A global `ApiExceptionFilter` (`src/common/api-exception.filter.ts`, registered in `main.ts`) is the
+backstop: it shapes every response into `{ error: { code, message } }` and blocks non-`HttpException`
+errors from leaking internals to the client. It does **not** replace per-service `toHttpException` —
+the filter has no idea *which operation* failed, so the service-level catch is what attaches that
+context to the log line.
 
 Note `music-languages.service.ts` does **not** follow this shape (no `Logger`, no `toHttpException`,
 no try/catch on most methods) — don't copy it as a reference for this skill. It's only relevant to

@@ -1,14 +1,22 @@
-import { HttpException, Injectable, InternalServerErrorException, Logger, NotFoundException } from '@nestjs/common';
+import {
+  HttpException,
+  Injectable,
+  InternalServerErrorException,
+  Logger,
+  NotFoundException,
+  OnModuleInit,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
 import { Plan } from './plan.entity';
 import { PLANS_CACHE_KEY, PLANS_CACHE_TTL_SECONDS, planCacheKey } from '../constants/cache';
 import { CommonMessages, PlansMessages } from '../constants/message';
+import { PLANS_SEED } from '../constants/plans-seed-data';
 import { RedisService } from '../redis/redis.service';
 
 @Injectable()
-export class PlansService {
+export class PlansService implements OnModuleInit {
   private readonly logger = new Logger(PlansService.name);
 
   constructor(
@@ -16,6 +24,17 @@ export class PlansService {
     private readonly plans: Repository<Plan>,
     private readonly redisService: RedisService,
   ) {}
+
+  async onModuleInit(): Promise<void> {
+    try {
+      // Upsert rather than insert-if-missing: pricing and features must re-sync with the
+      // seed on every boot, or existing rows drift away from the source of truth.
+      await this.plans.upsert(PLANS_SEED, ['id']);
+      await this.redisService.del(PLANS_CACHE_KEY, ...PLANS_SEED.map((plan) => planCacheKey(plan.id)));
+    } catch (error) {
+      this.logger.error('Failed to seed plans', error instanceof Error ? error.stack : error);
+    }
+  }
 
   async getAll(): Promise<Plan[]> {
     try {

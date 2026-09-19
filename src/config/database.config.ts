@@ -47,6 +47,12 @@ export function buildDatabaseConfig(): TypeOrmModuleOptions {
       MoodCard,
     ],
     synchronize: process.env.NODE_ENV !== 'production',
+    // A managed/serverless Postgres (Neon et al.) can take seconds to hand out a
+    // connection while its compute wakes, which overruns pg's default connect timeout.
+    extra: {
+      connectionTimeoutMillis: 30000,
+      max: 10,
+    },
   };
 
   if (url) {

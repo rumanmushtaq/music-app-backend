@@ -59,35 +59,26 @@ export class SearchService implements OnModuleInit {
 
   async onModuleInit(): Promise<void> {
     try {
-      for (const moodCard of SEARCH_SEED_MOOD_CARDS) {
-        const existing = await this.moodCards.findOne({ where: { id: moodCard.id } });
-        if (!existing) {
-          await this.moodCards.save(this.moodCards.create(moodCard));
-        }
-      }
-
-      for (const song of SEARCH_SEED_SONGS) {
-        const existing = await this.songs.findOne({ where: { id: song.id } });
-        if (!existing) {
-          await this.songs.save(this.songs.create(song));
-        }
-      }
-
-      for (const artist of SEARCH_SEED_ARTISTS) {
-        const existing = await this.artists.findOne({ where: { id: artist.id } });
-        if (!existing) {
-          await this.artists.save(this.artists.create(artist));
-        }
-      }
-
-      for (const playlist of SEARCH_SEED_PLAYLISTS) {
-        const existing = await this.playlists.findOne({ where: { id: playlist.id } });
-        if (!existing) {
-          await this.playlists.save(this.playlists.create(playlist));
-        }
-      }
+      // One SELECT + one bulk INSERT per table. A per-row findOne/save loop costs a
+      // round trip per row, which is slow enough against a remote database to visibly
+      // delay startup - Nest waits for this hook before it serves any request.
+      // Sequential on purpose: running these in parallel opens four pool connections at
+      // once, and a cold remote database can take seconds per connection.
+      await this.insertMissing(this.moodCards, SEARCH_SEED_MOOD_CARDS);
+      await this.insertMissing(this.songs, SEARCH_SEED_SONGS);
+      await this.insertMissing(this.artists, SEARCH_SEED_ARTISTS);
+      await this.insertMissing(this.playlists, SEARCH_SEED_PLAYLISTS);
     } catch (error) {
       this.logger.error('Failed to seed search dummy data', error instanceof Error ? error.stack : error);
+    }
+  }
+
+  private async insertMissing<T extends { id: string }>(repository: Repository<T>, rows: T[]): Promise<void> {
+    const existing = await repository.find({ select: { id: true } as never });
+    const existingIds = new Set(existing.map((row) => row.id));
+    const missing = rows.filter((row) => !existingIds.has(row.id));
+    if (missing.length) {
+      await repository.save(missing as never);
     }
   }
 

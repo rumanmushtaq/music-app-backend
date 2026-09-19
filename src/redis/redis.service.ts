@@ -23,6 +23,13 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   }
 
   async onModuleInit(): Promise<void> {
+    // Another module's onModuleInit may have issued a command already, which makes
+    // ioredis auto-connect the lazy client. Calling connect() again then throws
+    // "already connecting/connected" and would log a false "cache is down" warning.
+    if (this.client.status !== 'wait') {
+      return;
+    }
+
     try {
       await this.client.connect();
     } catch (error) {

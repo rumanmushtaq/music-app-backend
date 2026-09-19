@@ -29,11 +29,14 @@ export class MusicLanguagesService implements OnModuleInit {
 
   async onModuleInit(): Promise<void> {
     try {
-      for (const name of MUSIC_LANGUAGES_SEED_NAMES) {
-        const existing = await this.musicLanguages.findOne({ where: { name } });
-        if (!existing) {
-          await this.musicLanguages.save(this.musicLanguages.create({ name }));
-        }
+      // One SELECT + one bulk INSERT; a per-row loop costs a round trip per language,
+      // which visibly delays startup against a remote database.
+      const existing = await this.musicLanguages.find({ select: { name: true } });
+      const existingNames = new Set(existing.map((language) => language.name));
+      const missing = MUSIC_LANGUAGES_SEED_NAMES.filter((name) => !existingNames.has(name));
+      if (missing.length) {
+        await this.musicLanguages.save(missing.map((name) => this.musicLanguages.create({ name })));
+        await this.redisService.del(MUSIC_LANGUAGES_CACHE_KEY);
       }
     } catch (error) {
       this.logger.error('Failed to seed music languages', error instanceof Error ? error.stack : error);
