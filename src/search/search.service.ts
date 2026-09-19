@@ -1,44 +1,28 @@
-import { Injectable } from '@nestjs/common';
+import { HttpException, Injectable, InternalServerErrorException, Logger, OnModuleInit } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 
-import { Artist, MoodCard, Playlist, SearchResultType, Song } from './search.types';
-
-const moodCards: MoodCard[] = [
-  { id: 'rainy-wave', label: 'Rainy Wave', gradientStart: '#2B3A4A', gradientEnd: '#4E6478', artworkUrl: null },
-  { id: 'workout-boost', label: 'Workout Boost', gradientStart: '#3A0000', gradientEnd: '#B0173A', artworkUrl: null },
-  { id: 'late-night-chill', label: 'Late Night Chill', gradientStart: '#1B2735', gradientEnd: '#2B86FF', artworkUrl: null },
-  { id: 'dining-room', label: 'Dining Room', gradientStart: '#1F3D2B', gradientEnd: '#3D6B4A', artworkUrl: null },
-  { id: 'pop-party', label: 'Pop Party', gradientStart: '#3A3A3A', gradientEnd: '#5C5C5C', artworkUrl: null },
-  { id: 'super-hits-20s', label: "20's Super Hits", gradientStart: '#5A0F0F', gradientEnd: '#B0173A', artworkUrl: null },
-];
-
-const songs: Song[] = [
-  { id: 'strom-huise', title: 'Strom Huise', artistNames: ['Emmy Stark'], artworkUrl: null, durationSeconds: 212, viewsCount: 24000 },
-  { id: 'party-night-doom', title: 'Party Night - Doom Spot', artistNames: ['Doom Spot', 'Jhon Snow', 'Eddy Brok'], artworkUrl: null, durationSeconds: 187, viewsCount: 455000000 },
-  { id: 'endor-spark', title: 'Endor Spark - Repair', artistNames: ['Tarin', 'Kevin', 'Bob Sammy'], artworkUrl: null, durationSeconds: 201, viewsCount: 246000 },
-  { id: 'edm-house', title: 'Edm House', artistNames: ['Emmy Stark', 'Jhon Snow', 'Eddy Brok'], artworkUrl: null, durationSeconds: 233, viewsCount: 25000000 },
-  { id: 'party-night-lofi', title: 'Party Night Lo-Fi', artistNames: ['Emmy Stark', 'Jhon Snow', 'Eddy Brok'], artworkUrl: null, durationSeconds: 198, viewsCount: 654000 },
-  { id: 'saturday-kelly-clen', title: 'Saturday', artistNames: ['Kelly Clen', 'Kevin', 'Doom Spot'], artworkUrl: null, durationSeconds: 176, viewsCount: 246000 },
-  { id: 'party-pool', title: 'Party Pool - Re-Released', artistNames: ['Doom Spot'], artworkUrl: null, durationSeconds: 220, viewsCount: 89000 },
-  { id: 'bolt-strange', title: 'Bolt Strange - All Songs', artistNames: ['Tarin'], artworkUrl: null, durationSeconds: 205, viewsCount: 132000 },
-];
-
-const artists: Artist[] = [
-  { id: 'emmy-stark', name: 'Emmy Stark', avatarUrl: null, followersCount: 1200000 },
-  { id: 'doom-spot', name: 'Doom Spot', avatarUrl: null, followersCount: 845000 },
-  { id: 'jhon-snow', name: 'Jhon Snow', avatarUrl: null, followersCount: 2400000 },
-  { id: 'kelly-clen', name: 'Kelly Clen', avatarUrl: null, followersCount: 640000 },
-  { id: 'tarin', name: 'Tarin', avatarUrl: null, followersCount: 312000 },
-  { id: 'eddy-brok', name: 'Eddy Brok', avatarUrl: null, followersCount: 198000 },
-];
-
-const playlists: Playlist[] = [
-  { id: 'weekend-warmup', title: 'Weekend Warmup', songCount: 32, artworkUrl: null },
-  { id: 'chill-vibes', title: 'Chill Vibes Only', songCount: 48, artworkUrl: null },
-  { id: 'dinner-mood', title: 'Dinner Mood', songCount: 21, artworkUrl: null },
-  { id: 'pop-party-mix', title: 'Pop Party Mix', songCount: 56, artworkUrl: null },
-  { id: 'road-trip', title: 'Road Trip Anthems', songCount: 40, artworkUrl: null },
-  { id: 'focus-flow', title: 'Focus Flow', songCount: 18, artworkUrl: null },
-];
+import { Artist } from '../library/artist.entity';
+import { Playlist } from '../library/playlist.entity';
+import { Song } from '../library/song.entity';
+import {
+  LIBRARY_ARTISTS_CACHE_KEY,
+  LIBRARY_CACHE_TTL_SECONDS,
+  LIBRARY_PLAYLISTS_CACHE_KEY,
+  LIBRARY_SONGS_CACHE_KEY,
+  SEARCH_CACHE_TTL_SECONDS,
+  SEARCH_MOODS_CACHE_KEY,
+} from '../constants/cache';
+import { CommonMessages, SearchMessages } from '../constants/message';
+import {
+  SEARCH_SEED_ARTISTS,
+  SEARCH_SEED_MOOD_CARDS,
+  SEARCH_SEED_PLAYLISTS,
+  SEARCH_SEED_SONGS,
+} from '../constants/search-seed-data';
+import { RedisService } from '../redis/redis.service';
+import { MoodCard } from './mood-card.entity';
+import { Playlist as PlaylistResult, SearchResultType } from './search.types';
 
 function encodeCursor(offset: number): string {
   return Buffer.from(String(offset), 'utf8').toString('base64');
@@ -52,49 +36,129 @@ function decodeCursor(cursor?: string): number {
   return Number.isFinite(decoded) && decoded >= 0 ? decoded : 0;
 }
 
+function toPlaylistResult(playlist: Playlist): PlaylistResult {
+  const { id, title, songCount, artworkUrl } = playlist;
+  return { id, title, songCount, artworkUrl };
+}
+
 @Injectable()
-export class SearchService {
-  getMoodCards(): MoodCard[] {
-    return moodCards;
+export class SearchService implements OnModuleInit {
+  private readonly logger = new Logger(SearchService.name);
+
+  constructor(
+    @InjectRepository(Song)
+    private readonly songs: Repository<Song>,
+    @InjectRepository(Artist)
+    private readonly artists: Repository<Artist>,
+    @InjectRepository(Playlist)
+    private readonly playlists: Repository<Playlist>,
+    @InjectRepository(MoodCard)
+    private readonly moodCards: Repository<MoodCard>,
+    private readonly redisService: RedisService,
+  ) {}
+
+  async onModuleInit(): Promise<void> {
+    try {
+      for (const moodCard of SEARCH_SEED_MOOD_CARDS) {
+        const existing = await this.moodCards.findOne({ where: { id: moodCard.id } });
+        if (!existing) {
+          await this.moodCards.save(this.moodCards.create(moodCard));
+        }
+      }
+
+      for (const song of SEARCH_SEED_SONGS) {
+        const existing = await this.songs.findOne({ where: { id: song.id } });
+        if (!existing) {
+          await this.songs.save(this.songs.create(song));
+        }
+      }
+
+      for (const artist of SEARCH_SEED_ARTISTS) {
+        const existing = await this.artists.findOne({ where: { id: artist.id } });
+        if (!existing) {
+          await this.artists.save(this.artists.create(artist));
+        }
+      }
+
+      for (const playlist of SEARCH_SEED_PLAYLISTS) {
+        const existing = await this.playlists.findOne({ where: { id: playlist.id } });
+        if (!existing) {
+          await this.playlists.save(this.playlists.create(playlist));
+        }
+      }
+    } catch (error) {
+      this.logger.error('Failed to seed search dummy data', error instanceof Error ? error.stack : error);
+    }
   }
 
-  search(q: string, type: SearchResultType, limit: number, cursor?: string) {
-    const needle = q.trim().toLowerCase();
-    const offset = decodeCursor(cursor);
+  async getMoodCards(): Promise<MoodCard[]> {
+    try {
+      return await this.redisService.getOrSet(SEARCH_MOODS_CACHE_KEY, SEARCH_CACHE_TTL_SECONDS, () =>
+        this.moodCards.find(),
+      );
+    } catch (error) {
+      throw this.toHttpException(error, SearchMessages.loadMoodsFailed);
+    }
+  }
 
-    if (type === 'artists') {
+  async search(q: string, type: SearchResultType, limit: number, cursor?: string) {
+    try {
+      const needle = q.trim().toLowerCase();
+      const offset = decodeCursor(cursor);
+
+      if (type === 'artists') {
+        const all = await this.redisService.getOrSet(LIBRARY_ARTISTS_CACHE_KEY, LIBRARY_CACHE_TTL_SECONDS, () =>
+          this.artists.find(),
+        );
+        return this.paginate(
+          all.filter((artist) => artist.name.toLowerCase().includes(needle)),
+          offset,
+          limit,
+          'artists',
+        );
+      }
+
+      if (type === 'playlists') {
+        const all = await this.redisService.getOrSet(LIBRARY_PLAYLISTS_CACHE_KEY, LIBRARY_CACHE_TTL_SECONDS, () =>
+          this.playlists.find(),
+        );
+        return this.paginate(
+          all.filter((playlist) => playlist.title.toLowerCase().includes(needle)).map(toPlaylistResult),
+          offset,
+          limit,
+          'playlists',
+        );
+      }
+
+      const all = await this.redisService.getOrSet(LIBRARY_SONGS_CACHE_KEY, LIBRARY_CACHE_TTL_SECONDS, () =>
+        this.songs.find(),
+      );
       return this.paginate(
-        artists.filter((artist) => artist.name.toLowerCase().includes(needle)),
+        all.filter(
+          (song) =>
+            song.title.toLowerCase().includes(needle) ||
+            song.artistNames.some((name) => name.toLowerCase().includes(needle)),
+        ),
         offset,
         limit,
-        'artists',
+        'songs',
       );
+    } catch (error) {
+      throw this.toHttpException(error, SearchMessages.searchFailed);
     }
-
-    if (type === 'playlists') {
-      return this.paginate(
-        playlists.filter((playlist) => playlist.title.toLowerCase().includes(needle)),
-        offset,
-        limit,
-        'playlists',
-      );
-    }
-
-    return this.paginate(
-      songs.filter(
-        (song) =>
-          song.title.toLowerCase().includes(needle) ||
-          song.artistNames.some((name) => name.toLowerCase().includes(needle)),
-      ),
-      offset,
-      limit,
-      'songs',
-    );
   }
 
   private paginate<T>(matches: T[], offset: number, limit: number, key: SearchResultType) {
     const slice = matches.slice(offset, offset + limit);
     const nextCursor = offset + limit < matches.length ? encodeCursor(offset + limit) : null;
     return { [key]: slice, nextCursor };
+  }
+
+  private toHttpException(error: unknown, context: string): HttpException {
+    if (error instanceof HttpException) {
+      return error;
+    }
+    this.logger.error(context, error instanceof Error ? error.stack : error);
+    return new InternalServerErrorException(CommonMessages.unexpectedError);
   }
 }

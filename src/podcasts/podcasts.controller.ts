@@ -7,20 +7,18 @@ export class PodcastsController {
   constructor(private readonly podcastsService: PodcastsService) {}
 
   @Get()
-  getFeed() {
-    return {
-      categories: this.podcastsService.getCategories(),
-      feed: this.podcastsService.getFeed(),
-    };
+  async getFeed() {
+    const [categories, feed] = await Promise.all([this.podcastsService.getCategories(), this.podcastsService.getFeed()]);
+    return { categories, feed };
   }
 
   @Get(':id')
-  getPodcastDetail(@Param('id') id: string) {
+  async getPodcastDetail(@Param('id') id: string) {
     return this.podcastsService.getPodcastDetail(id);
   }
 
   @Get(':id/episodes/:episodeId')
-  getEpisode(@Param('id') id: string, @Param('episodeId') episodeId: string) {
+  async getEpisode(@Param('id') id: string, @Param('episodeId') episodeId: string) {
     return this.podcastsService.getEpisode(id, episodeId);
   }
 }

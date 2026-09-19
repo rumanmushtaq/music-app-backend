@@ -16,4 +16,7 @@ export class Song {
 
   @Column({ type: 'int' })
   durationSeconds!: number;
+
+  @Column({ type: 'int', default: 0 })
+  viewsCount!: number;
 }

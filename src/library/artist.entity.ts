@@ -10,4 +10,7 @@ export class Artist {
 
   @Column({ type: 'varchar', nullable: true })
   avatarUrl!: string | null;
+
+  @Column({ type: 'int', default: 0 })
+  followersCount!: number;
 }

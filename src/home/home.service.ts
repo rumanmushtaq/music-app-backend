@@ -1,126 +1,116 @@
-import { Injectable } from '@nestjs/common';
+import { HttpException, Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 
+import { HomeCategory } from './home-category.entity';
+import { QuickPlayItem } from './quick-play-item.entity';
+import { DailyMixItem } from './daily-mix-item.entity';
+import { HollywoodTrack } from './hollywood-track.entity';
+import { UntouchedBeat } from './untouched-beat.entity';
+import { TopVoice } from './top-voice.entity';
+import { NOW_PLAYING_ID, NowPlaying } from './now-playing.entity';
+import { HomeFeed } from './home.types';
+import { HOME_FEED_CACHE_KEY, HOME_FEED_CACHE_TTL_SECONDS } from '../constants/cache';
+import { CommonMessages, HomeMessages } from '../constants/message';
 import { RedisService } from '../redis/redis.service';
-import {
-  BeatItemData,
-  CategoryChipData,
-  DailyMixItemData,
-  HomeFeed,
-  QuickPlayItemData,
-  TrackItemData,
-  VoiceItemData,
-} from './home.types';
-
-const categories: CategoryChipData[] = [
-  { id: 'devotion', emoji: '🙏', label: 'Devotion' },
-  { id: 'workout', emoji: '💪', label: 'Workout' },
-  { id: 'party', emoji: '🥳', label: 'Party' },
-  { id: 'focus', emoji: '🎯', label: 'Focus' },
-];
-
-const quickPlayItems: QuickPlayItemData[] = [
-  { id: 'strom-h', title: 'Strom H...', gradient: ['#2B5876', '#4E4376'], imageUrl: null },
-  { id: 'jui-lofi', title: 'Jui - LoFi', gradient: ['#8E2DE2', '#4A00E0'], imageUrl: null },
-  { id: 'saul-mate', title: 'Saul Mate', gradient: ['#FE3030', '#FF4E88'], imageUrl: null },
-  { id: 'jack-sui', title: 'Jack - Sui', gradient: ['#134E5E', '#71B280'], imageUrl: null },
-];
-
-const dailyMixItems: DailyMixItemData[] = [
-  {
-    id: 'daily-mix-1',
-    title: 'Mix 1',
-    curators: 'Reyan Wran, Goobin...',
-    gradient: ['#FE3030', '#FF9DBF'],
-    imageUrl: null,
-  },
-  {
-    id: 'daily-mix-2',
-    title: 'Mix 2',
-    curators: 'Pritam, Arigit Singh,...',
-    gradient: ['#2B86FF', '#9DD1FF'],
-    imageUrl: null,
-  },
-  {
-    id: 'daily-mix-3',
-    title: 'Mix 3',
-    curators: 'Diljit Dosanjh, AP...',
-    gradient: ['#7B2FF7', '#C29DFF'],
-    imageUrl: null,
-  },
-];
-
-const hollywoodTracks: TrackItemData[] = [
-  {
-    id: 'edm-house',
-    title: 'Edm House - By Uni...',
-    subtitle: 'Unimagine Foxes, Jhon Sn...',
-    kind: 'Playlist',
-    views: '25M Views',
-    gradient: ['#1B2735', '#2B86FF'],
-    imageUrl: null,
-  },
-  {
-    id: 'party-night-lofi',
-    title: 'Party Night Lo-Fi',
-    subtitle: 'Eddy Sins, Worsen, Doom',
-    kind: 'Song',
-    views: '654K Views',
-    gradient: ['#3A0000', '#B0173A'],
-    imageUrl: null,
-  },
-];
-
-const untouchedBeats: BeatItemData[] = [
-  { id: 'anova-bee', title: 'Anova Bee By Amma Brok', gradient: ['#5A0F5A', '#B0173A'], imageUrl: null },
-  { id: 'pink-dream', title: 'Pink Dream by Emma Brok', gradient: ['#2B0B4F', '#5A2DA0'], imageUrl: null },
-];
-
-const topVoices: VoiceItemData[] = [
-  {
-    id: 'aaditya-gandhi',
-    name: 'Aaditya Gandhi',
-    initials: 'AG',
-    gradient: ['#FF4E88', '#7B2FF7'],
-    imageUrl: null,
-  },
-  {
-    id: 'prabhu-ramaswamy',
-    name: 'Prabhu Ramaswamy',
-    initials: 'PR',
-    gradient: ['#2B86FF', '#134E5E'],
-    imageUrl: null,
-  },
-  {
-    id: 'megha-padkare',
-    name: 'Megha Padkare',
-    initials: 'MP',
-    gradient: ['#FE3030', '#FF9500'],
-    imageUrl: null,
-  },
-];
-
-const nowPlaying = {
-  title: 'Saul Mate - By...',
-  progress: 0.35,
-  gradient: ['#FE3030', '#FF4E88'] as [string, string],
-};
-
-const HOME_FEED_CACHE_KEY = 'home:feed';
-const HOME_FEED_CACHE_TTL_SECONDS = 60 * 60;
 
 @Injectable()
 export class HomeService {
-  constructor(private readonly redisService: RedisService) {}
+  private readonly logger = new Logger(HomeService.name);
 
-  getHomeFeed(): Promise<HomeFeed> {
-    return this.redisService.getOrSet(HOME_FEED_CACHE_KEY, HOME_FEED_CACHE_TTL_SECONDS, () => ({
-      categories,
-      quickPlayItems,
-      dailyMixItems,
-      hollywoodTracks,
-      untouchedBeats,
-      topVoices,
-      nowPlaying,
-    }));
+  constructor(
+    @InjectRepository(HomeCategory)
+    private readonly categories: Repository<HomeCategory>,
+    @InjectRepository(QuickPlayItem)
+    private readonly quickPlayItems: Repository<QuickPlayItem>,
+    @InjectRepository(DailyMixItem)
+    private readonly dailyMixItems: Repository<DailyMixItem>,
+    @InjectRepository(HollywoodTrack)
+    private readonly hollywoodTracks: Repository<HollywoodTrack>,
+    @InjectRepository(UntouchedBeat)
+    private readonly untouchedBeats: Repository<UntouchedBeat>,
+    @InjectRepository(TopVoice)
+    private readonly topVoices: Repository<TopVoice>,
+    @InjectRepository(NowPlaying)
+    private readonly nowPlayingRepo: Repository<NowPlaying>,
+    private readonly redisService: RedisService,
+  ) {}
+
+  async getHomeFeed(): Promise<HomeFeed> {
+    try {
+      return await this.redisService.getOrSet(HOME_FEED_CACHE_KEY, HOME_FEED_CACHE_TTL_SECONDS, async () => {
+        const order = { displayOrder: 'ASC' as const };
+        const [categories, quickPlayItems, dailyMixItems, hollywoodTracks, untouchedBeats, topVoices, nowPlaying] =
+          await Promise.all([
+            this.categories.find({ order }),
+            this.quickPlayItems.find({ order }),
+            this.dailyMixItems.find({ order }),
+            this.hollywoodTracks.find({ order }),
+            this.untouchedBeats.find({ order }),
+            this.topVoices.find({ order }),
+            this.nowPlayingRepo.findOne({ where: { id: NOW_PLAYING_ID } }),
+          ]);
+
+        return {
+          categories: categories.map((category) => ({
+            id: category.id,
+            emoji: category.emoji,
+            label: category.label,
+          })),
+          quickPlayItems: quickPlayItems.map((item) => ({
+            id: item.id,
+            title: item.title,
+            gradient: [item.gradientStart, item.gradientEnd],
+            imageUrl: item.imageUrl,
+          })),
+          dailyMixItems: dailyMixItems.map((item) => ({
+            id: item.id,
+            title: item.title,
+            curators: item.curators,
+            gradient: [item.gradientStart, item.gradientEnd],
+            imageUrl: item.imageUrl,
+          })),
+          hollywoodTracks: hollywoodTracks.map((track) => ({
+            id: track.id,
+            title: track.title,
+            subtitle: track.subtitle,
+            kind: track.kind ?? undefined,
+            views: track.views ?? undefined,
+            gradient: [track.gradientStart, track.gradientEnd],
+            imageUrl: track.imageUrl,
+          })),
+          untouchedBeats: untouchedBeats.map((beat) => ({
+            id: beat.id,
+            title: beat.title,
+            gradient: [beat.gradientStart, beat.gradientEnd],
+            imageUrl: beat.imageUrl,
+          })),
+          topVoices: topVoices.map((voice) => ({
+            id: voice.id,
+            name: voice.name,
+            initials: voice.initials,
+            gradient: [voice.gradientStart, voice.gradientEnd],
+            imageUrl: voice.imageUrl,
+          })),
+          nowPlaying: nowPlaying
+            ? {
+                title: nowPlaying.title,
+                progress: nowPlaying.progress,
+                gradient: [nowPlaying.gradientStart, nowPlaying.gradientEnd],
+              }
+            : { title: '', progress: 0, gradient: ['#000000', '#000000'] },
+        };
+      });
+    } catch (error) {
+      throw this.toHttpException(error, HomeMessages.loadHomeFeedFailed);
+    }
+  }
+
+  private toHttpException(error: unknown, context: string): HttpException {
+    if (error instanceof HttpException) {
+      return error;
+    }
+    this.logger.error(context, error instanceof Error ? error.stack : error);
+    return new InternalServerErrorException(CommonMessages.unexpectedError);
   }
 }

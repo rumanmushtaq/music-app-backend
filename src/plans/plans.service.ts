@@ -1,77 +1,54 @@
-import { Injectable, NotFoundException, OnModuleInit } from '@nestjs/common';
+import { HttpException, Injectable, InternalServerErrorException, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
 import { Plan } from './plan.entity';
-import { PLAN_IDS } from '../constants/plan';
-import { PlansMessages } from '../constants/message';
-
-const SEED_PLANS: Plan[] = [
-  {
-    id: PLAN_IDS.free,
-    tier: 'free',
-    name: 'Musinto Free',
-    durationLabel: 'Unlimited',
-    durationDays: null,
-    originalPrice: '0.00',
-    currency: 'USD',
-    discountPercent: 0,
-    features: ['Ad-Supported Streaming', 'Limited Skips'],
-  },
-  {
-    id: PLAN_IDS.pro,
-    tier: 'pro',
-    name: 'Musinto Pro',
-    durationLabel: '1 Month',
-    durationDays: 30,
-    originalPrice: '9.99',
-    currency: 'USD',
-    discountPercent: 20,
-    features: ['Unlimited Music', "Ad's Free Experience", 'Offline Downloads'],
-  },
-  {
-    id: PLAN_IDS.black,
-    tier: 'black',
-    name: 'Musinto Black',
-    durationLabel: '1 Year',
-    durationDays: 365,
-    originalPrice: '99.99',
-    currency: 'USD',
-    discountPercent: 30,
-    features: ['Unlimited Music', 'AI Features', "Ad's Free Experience", 'Lossless Audio', 'Offline Downloads'],
-  },
-];
+import { PLANS_CACHE_KEY, PLANS_CACHE_TTL_SECONDS, planCacheKey } from '../constants/cache';
+import { CommonMessages, PlansMessages } from '../constants/message';
+import { RedisService } from '../redis/redis.service';
 
 @Injectable()
-export class PlansService implements OnModuleInit {
+export class PlansService {
+  private readonly logger = new Logger(PlansService.name);
+
   constructor(
     @InjectRepository(Plan)
     private readonly plans: Repository<Plan>,
+    private readonly redisService: RedisService,
   ) {}
 
-  async onModuleInit(): Promise<void> {
-    for (const plan of SEED_PLANS) {
-      const existing = await this.plans.findOne({ where: { id: plan.id } });
-      if (existing) {
-        await this.plans.save(this.plans.merge(existing, plan));
-      } else {
-        await this.plans.save(this.plans.create(plan));
-      }
-    }
-  }
-
   async getAll(): Promise<Plan[]> {
-    const order = ['free', 'pro', 'black'];
-    const plans = await this.plans.find();
-    return plans.sort((a, b) => order.indexOf(a.tier) - order.indexOf(b.tier));
+    try {
+      return await this.redisService.getOrSet(PLANS_CACHE_KEY, PLANS_CACHE_TTL_SECONDS, async () => {
+        const order = ['free', 'pro', 'black'];
+        const plans = await this.plans.find();
+        return plans.sort((a, b) => order.indexOf(a.tier) - order.indexOf(b.tier));
+      });
+    } catch (error) {
+      throw this.toHttpException(error, PlansMessages.loadPlansFailed);
+    }
   }
 
   async getById(id: string): Promise<Plan> {
-    const plan = await this.plans.findOne({ where: { id } });
-    if (!plan) {
-      throw new NotFoundException(PlansMessages.planNotFound(id));
+    try {
+      const plan = await this.redisService.getOrSet(planCacheKey(id), PLANS_CACHE_TTL_SECONDS, () =>
+        this.plans.findOne({ where: { id } }),
+      );
+      if (!plan) {
+        throw new NotFoundException(PlansMessages.planNotFound(id));
+      }
+      return plan;
+    } catch (error) {
+      throw this.toHttpException(error, PlansMessages.loadPlanFailed(id));
     }
-    return plan;
+  }
+
+  private toHttpException(error: unknown, context: string): HttpException {
+    if (error instanceof HttpException) {
+      return error;
+    }
+    this.logger.error(context, error instanceof Error ? error.stack : error);
+    return new InternalServerErrorException(CommonMessages.unexpectedError);
   }
 
   computeDiscountedPrice(plan: Plan): number {

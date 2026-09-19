@@ -13,8 +13,8 @@ export class AiSearchController {
   constructor(private readonly aiSearchService: AiSearchService) {}
 
   @Post()
-  search(@Body() body: AiSearchBody) {
-    const { mix, recommended } = this.aiSearchService.generateMix(body?.prompt);
+  async search(@Body() body: AiSearchBody) {
+    const { mix, recommended } = await this.aiSearchService.generateMix(body?.prompt);
     return {
       mix: { id: mix.id, title: mix.title, trackCount: mix.trackCount },
       mixTracks: mix.tracks,
