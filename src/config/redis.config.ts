@@ -1,15 +1,15 @@
-import type { RedisOptions } from 'ioredis';
+export type UpstashRedisConfig = {
+  url: string;
+  token: string;
+};
 
-export function buildRedisConfig(): RedisOptions | string {
-  const url = process.env.REDIS_URL;
+export function buildRedisConfig(): UpstashRedisConfig | null {
+  const url = process.env.UPSTASH_REDIS_REST_URL;
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
 
-  if (url) {
-    return url;
+  if (!url || !token) {
+    return null;
   }
 
-  return {
-    host: process.env.REDIS_HOST ?? 'localhost',
-    port: Number(process.env.REDIS_PORT ?? 6379),
-    password: process.env.REDIS_PASSWORD || undefined,
-  };
+  return { url, token };
 }
