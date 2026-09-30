@@ -2,7 +2,7 @@ import { HttpException, Injectable, InternalServerErrorException, Logger, NotFou
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
-import { User } from './user.entity';
+import { User, UserRole } from './user.entity';
 import { CommonMessages, UsersMessages } from '../constants/message';
 import { PLAN_IDS } from '../constants/plan';
 import { isUniqueViolation } from '../common/db-errors.util';
@@ -82,6 +82,18 @@ export class UsersService {
       return saved;
     } catch (error) {
       throw this.toHttpException(error, UsersMessages.updateUserProfileFailed(clerkId));
+    }
+  }
+
+  async setRole(clerkId: string, role: UserRole): Promise<User> {
+    try {
+      const user = await this.findByClerkIdOrThrow(clerkId);
+      user.role = role;
+      const saved = await this.users.save(user);
+      await this.redisService.del(userCacheKey(clerkId));
+      return saved;
+    } catch (error) {
+      throw this.toHttpException(error, UsersMessages.setRoleFailed(clerkId));
     }
   }
 

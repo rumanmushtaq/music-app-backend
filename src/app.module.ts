@@ -5,6 +5,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { buildDatabaseConfig } from './config/database.config';
 import { RedisModule } from './redis/redis.module';
 import { MeController } from './auth/me.controller';
+import { LoginController } from './auth/login.controller';
 import { UsersModule } from './users/users.module';
 import { HomeModule } from './home/home.module';
 import { PodcastsModule } from './podcasts/podcasts.module';
@@ -34,6 +35,6 @@ import { MusicLanguagesModule } from './music-languages/music-languages.module';
     LibraryModule,
     MusicLanguagesModule,
   ],
-  controllers: [MeController],
+  controllers: [MeController, LoginController],
 })
 export class AppModule {}

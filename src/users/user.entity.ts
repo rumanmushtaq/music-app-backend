@@ -3,7 +3,7 @@ import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, Unique } from
 import { PLAN_IDS } from '../constants/plan';
 
 export type ThemePreference = 'system' | 'light' | 'dark';
-export type UserRole = 'user' | 'admin';
+export type UserRole = 'user' | 'admin' | 'superAdmin';
 
 @Entity('users')
 @Unique(['clerkId'])
@@ -35,7 +35,7 @@ export class User {
   @Column({ nullable: true, default: PLAN_IDS.free })
   currentPlanId?: string;
 
-  @Column({ type: 'enum', enum: ['user', 'admin'], default: 'user' })
+  @Column({ type: 'enum', enum: ['user', 'admin', 'superAdmin'], default: 'user' })
   role!: UserRole;
 
   @CreateDateColumn()

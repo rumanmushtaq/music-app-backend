@@ -1,4 +1,5 @@
 import { Body, Controller, Post, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 
 import { ClerkAuthGuard } from '../auth/clerk-auth.guard';
 import { AiSearchService } from './ai-search.service';
@@ -7,6 +8,8 @@ type AiSearchBody = {
   prompt?: string;
 };
 
+@ApiTags('AI Search')
+@ApiBearerAuth('clerk-token')
 @Controller('api/ai-search')
 @UseGuards(ClerkAuthGuard)
 export class AiSearchController {

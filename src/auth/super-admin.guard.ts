@@ -5,13 +5,10 @@ import { UsersService } from '../users/users.service';
 import type { AuthClaims } from './clerk-auth.guard';
 import { AuthMessages } from '../constants/message';
 
-// Runs after ClerkAuthGuard (which only verifies identity) - this checks the
-// authenticated user's stored role, so it must always be paired with
-// ClerkAuthGuard: @UseGuards(ClerkAuthGuard, AdminGuard).
-// Passes for 'admin' AND 'superAdmin' - superAdmin is a superset of admin access.
-// For routes that must be superAdmin-only, use SuperAdminGuard instead.
+// Runs after ClerkAuthGuard, same pairing rule as AdminGuard: @UseGuards(ClerkAuthGuard, SuperAdminGuard).
+// Strict check - only 'superAdmin' passes, unlike AdminGuard which also accepts plain 'admin'.
 @Injectable()
-export class AdminGuard implements CanActivate {
+export class SuperAdminGuard implements CanActivate {
   constructor(private readonly usersService: UsersService) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -21,8 +18,8 @@ export class AdminGuard implements CanActivate {
     }
 
     const user = await this.usersService.findByClerkIdOrThrow(request.auth.userId);
-    if (user.role !== 'admin' && user.role !== 'superAdmin') {
-      throw new ForbiddenException(AuthMessages.adminAccessRequired);
+    if (user.role !== 'superAdmin') {
+      throw new ForbiddenException(AuthMessages.superAdminAccessRequired);
     }
 
     return true;

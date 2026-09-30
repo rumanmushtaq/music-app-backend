@@ -11,6 +11,10 @@ export const AuthMessages = {
   missingBearerToken: 'Missing bearer token',
   invalidOrExpiredToken: 'Invalid or expired token',
   adminAccessRequired: 'Admin access required',
+  superAdminAccessRequired: 'Super admin access required',
+  emailAndPasswordRequired: 'email and password are required',
+  invalidCredentials: 'Invalid email or password',
+  tooManyLoginAttempts: 'Too many login attempts. Try again later.',
 };
 
 export const CheckoutMessages = {
@@ -84,4 +88,5 @@ export const UsersMessages = {
   upsertUserFailed: (clerkId: string) => `Failed to upsert user for clerk id "${clerkId}"`,
   updateUserProfileFailed: (clerkId: string) => `Failed to update profile for clerk id "${clerkId}"`,
   setCurrentPlanFailed: (clerkId: string) => `Failed to set current plan for clerk id "${clerkId}"`,
+  setRoleFailed: (clerkId: string) => `Failed to set role for clerk id "${clerkId}"`,
 };

@@ -1,10 +1,13 @@
 import { Controller, Get, Param, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 
 import { AuthClaims, ClerkAuthGuard } from '../auth/clerk-auth.guard';
 import { CurrentAuth } from '../auth/current-auth.decorator';
 import { UsersService } from '../users/users.service';
 import { PlansService } from './plans.service';
 
+@ApiTags('Plans')
+@ApiBearerAuth('clerk-token')
 @Controller('api/plans')
 @UseGuards(ClerkAuthGuard)
 export class PlansController {

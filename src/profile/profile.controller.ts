@@ -1,9 +1,12 @@
 import { Body, Controller, Get, HttpCode, HttpStatus, Patch, Post, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 
 import { AuthClaims, ClerkAuthGuard } from '../auth/clerk-auth.guard';
 import { CurrentAuth } from '../auth/current-auth.decorator';
 import { ProfileService, UpdateProfileBody } from './profile.service';
 
+@ApiTags('Profile')
+@ApiBearerAuth('clerk-token')
 @Controller('api')
 @UseGuards(ClerkAuthGuard)
 export class ProfileController {

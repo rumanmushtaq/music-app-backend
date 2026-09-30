@@ -1,10 +1,13 @@
 import { BadRequestException, Controller, Get, Query, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 
 import { ClerkAuthGuard } from '../auth/clerk-auth.guard';
 import { SearchResultType } from './search.types';
 import { SearchService } from './search.service';
 import { SearchMessages } from '../constants/message';
 
+@ApiTags('Search')
+@ApiBearerAuth('clerk-token')
 @Controller('api/search')
 @UseGuards(ClerkAuthGuard)
 export class SearchController {

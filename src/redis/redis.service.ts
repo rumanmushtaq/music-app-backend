@@ -68,6 +68,22 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
+  // Increments a counter, setting its expiry only on the first increment (so the window
+  // doesn't keep sliding forward on every attempt). Fails open (returns 0) on Redis errors,
+  // same as every other method here - a cache/counter outage must never block real requests.
+  async incrWithExpiry(key: string, ttlSeconds: number): Promise<number> {
+    try {
+      const count = await this.client.incr(key);
+      if (count === 1) {
+        await this.client.expire(key, ttlSeconds);
+      }
+      return count;
+    } catch (error) {
+      this.logger.warn(`Redis INCR failed for key "${key}": ${(error as Error).message}`);
+      return 0;
+    }
+  }
+
   async delByPrefix(prefix: string): Promise<void> {
     try {
       const keys = await this.client.keys(`${prefix}*`);

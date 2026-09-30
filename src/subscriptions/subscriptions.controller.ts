@@ -1,9 +1,12 @@
 import { Controller, Get, Post, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 
 import { AuthClaims, ClerkAuthGuard } from '../auth/clerk-auth.guard';
 import { CurrentAuth } from '../auth/current-auth.decorator';
 import { SubscriptionsService } from './subscriptions.service';
 
+@ApiTags('Subscription')
+@ApiBearerAuth('clerk-token')
 @Controller('api/subscription')
 @UseGuards(ClerkAuthGuard)
 export class SubscriptionsController {

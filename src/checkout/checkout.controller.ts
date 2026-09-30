@@ -1,4 +1,5 @@
 import { Body, Controller, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 
 import { AuthClaims, ClerkAuthGuard } from '../auth/clerk-auth.guard';
 import { CurrentAuth } from '../auth/current-auth.decorator';
@@ -8,6 +9,8 @@ type CreateOrderBody = { planId: string };
 type SetAddressBody = { countryCode: string; stateCode?: string };
 type PayBody = { paymentProvider: string; paymentToken: string };
 
+@ApiTags('Checkout')
+@ApiBearerAuth('clerk-token')
 @Controller('api/checkout')
 @UseGuards(ClerkAuthGuard)
 export class CheckoutController {

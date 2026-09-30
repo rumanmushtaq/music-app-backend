@@ -30,3 +30,9 @@ export const MUSIC_LANGUAGES_CACHE_KEY = 'music-languages:all';
 export const subscriptionCacheKey = (userId: string) => `subscriptions:${userId}`;
 
 export const userCacheKey = (clerkId: string) => `users:${clerkId}`;
+
+// Backend-driven login (POST /auth/login) bypasses Clerk's own client-side bot/rate
+// protection, so failed attempts are throttled here per email+IP.
+export const LOGIN_ATTEMPT_LIMIT = 5;
+export const LOGIN_ATTEMPT_WINDOW_SECONDS = 10 * 60;
+export const loginAttemptsCacheKey = (email: string, ip: string) => `auth:login-attempts:${email}:${ip}`;
