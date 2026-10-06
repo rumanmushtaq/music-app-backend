@@ -20,6 +20,14 @@ import { LoggingInterceptor } from './common/logging.interceptor';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+
+    app.enableCors({
+    origin: 'http://localhost:3000',
+    credentials: true,
+  });
+
+  
   app.useGlobalFilters(new ApiExceptionFilter());
   app.useGlobalInterceptors(new LoggingInterceptor());
 
