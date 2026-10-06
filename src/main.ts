@@ -20,6 +20,15 @@ import { LoggingInterceptor } from './common/logging.interceptor';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  // No CORS_ORIGINS set -> allow any origin. The mobile app doesn't send a browser Origin
+  // header at all, so this only gates browser callers (Swagger-from-a-browser, a web build,
+  // an admin panel) hitting the deployed URL from somewhere other than this backend's own host.
+  const corsOrigins = process.env.CORS_ORIGINS?.split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+  app.enableCors({ origin: corsOrigins?.length ? corsOrigins : true, credentials: true });
+
   app.useGlobalFilters(new ApiExceptionFilter());
   app.useGlobalInterceptors(new LoggingInterceptor());
 
