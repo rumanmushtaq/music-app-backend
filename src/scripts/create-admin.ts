@@ -57,6 +57,7 @@ async function main() {
 }
 
 main().catch((error) => {
-  console.error(error instanceof Error ? error.message : error);
+  console.error("CREATE ADMIN ERROR:");
+  console.error(error);
   process.exit(1);
 });
