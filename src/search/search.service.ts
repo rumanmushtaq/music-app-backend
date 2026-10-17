@@ -73,7 +73,10 @@ export class SearchService implements OnModuleInit {
     }
   }
 
-  private async insertMissing<T extends { id: string }>(repository: Repository<T>, rows: T[]): Promise<void> {
+  private async insertMissing<T extends { id: string }>(
+    repository: Repository<T>,
+    rows: Array<Partial<T> & { id: string }>,
+  ): Promise<void> {
     const existing = await repository.find({ select: { id: true } as never });
     const existingIds = new Set(existing.map((row) => row.id));
     const missing = rows.filter((row) => !existingIds.has(row.id));

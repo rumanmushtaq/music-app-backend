@@ -17,6 +17,8 @@ import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { AiSearchModule } from './ai-search/ai-search.module';
 import { LibraryModule } from './library/library.module';
 import { MusicLanguagesModule } from './music-languages/music-languages.module';
+import { PlaysModule } from './plays/plays.module';
+import { AdminDashboardModule } from './admin-dashboard/admin-dashboard.module';
 
 @Module({
   imports: [
@@ -34,6 +36,8 @@ import { MusicLanguagesModule } from './music-languages/music-languages.module';
     AiSearchModule,
     LibraryModule,
     MusicLanguagesModule,
+    PlaysModule,
+    AdminDashboardModule,
   ],
   controllers: [MeController, LoginController],
 })

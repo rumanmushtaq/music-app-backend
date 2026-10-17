@@ -19,6 +19,7 @@ import { UntouchedBeat } from '../home/untouched-beat.entity';
 import { TopVoice } from '../home/top-voice.entity';
 import { NowPlaying } from '../home/now-playing.entity';
 import { MoodCard } from '../search/mood-card.entity';
+import { PlayEvent } from '../plays/play-event.entity';
 
 export function buildDatabaseConfig(): TypeOrmModuleOptions {
   const url = process.env.DATABASE_URL;
@@ -45,6 +46,7 @@ export function buildDatabaseConfig(): TypeOrmModuleOptions {
       TopVoice,
       NowPlaying,
       MoodCard,
+      PlayEvent,
     ],
     synchronize: process.env.NODE_ENV !== 'production',
     // A managed/serverless Postgres (Neon et al.) can take seconds to hand out a

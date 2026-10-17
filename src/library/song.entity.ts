@@ -1,4 +1,6 @@
-import { Column, Entity, PrimaryColumn } from 'typeorm';
+import { Column, CreateDateColumn, Entity, PrimaryColumn } from 'typeorm';
+
+export type SongStatus = 'published' | 'pending' | 'draft' | 'rejected';
 
 @Entity('songs')
 export class Song {
@@ -19,4 +21,12 @@ export class Song {
 
   @Column({ type: 'int', default: 0 })
   viewsCount!: number;
+
+  // Moderation state shown on the admin dashboard. Defaults to 'published' so the rows
+  // seeded before this column existed stay visible as live catalog entries.
+  @Column({ type: 'varchar', default: 'published' })
+  status!: SongStatus;
+
+  @CreateDateColumn({ type: 'timestamptz' })
+  createdAt!: Date;
 }

@@ -7,6 +7,8 @@ export const SEARCH_CACHE_TTL_SECONDS = 60 * 60;
 export const MUSIC_LANGUAGES_CACHE_TTL_SECONDS = 60 * 60;
 export const SUBSCRIPTIONS_CACHE_TTL_SECONDS = 5 * 60;
 export const USERS_CACHE_TTL_SECONDS = 5 * 60;
+// Short on purpose: the dashboard should reflect new plays/sign-ups within a minute.
+export const ADMIN_DASHBOARD_CACHE_TTL_SECONDS = 60;
 
 export const HOME_FEED_CACHE_KEY = 'home:feed';
 
@@ -30,6 +32,10 @@ export const MUSIC_LANGUAGES_CACHE_KEY = 'music-languages:all';
 export const subscriptionCacheKey = (userId: string) => `subscriptions:${userId}`;
 
 export const userCacheKey = (clerkId: string) => `users:${clerkId}`;
+
+export const ADMIN_DASHBOARD_CACHE_PREFIX = 'admin:dashboard:';
+export const adminDashboardCacheKey = (section: string, param?: string | number) =>
+  `${ADMIN_DASHBOARD_CACHE_PREFIX}${section}${param === undefined ? '' : `:${param}`}`;
 
 // Backend-driven login (POST /auth/login) bypasses Clerk's own client-side bot/rate
 // protection, so failed attempts are throttled here per email+IP.
