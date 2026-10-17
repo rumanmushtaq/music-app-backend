@@ -12,7 +12,8 @@ export const SEARCH_SEED_MOOD_CARDS: MoodCard[] = [
   { id: 'super-hits-20s', label: "20's Super Hits", gradientStart: '#5A0F0F', gradientEnd: '#B0173A', artworkUrl: null },
 ];
 
-export const SEARCH_SEED_SONGS: Song[] = [
+// status/createdAt are left to their column defaults.
+export const SEARCH_SEED_SONGS: Omit<Song, 'status' | 'createdAt'>[] = [
   { id: 'strom-huise', title: 'Strom Huise', artistNames: ['Emmy Stark'], artworkUrl: null, durationSeconds: 212, viewsCount: 24000 },
   { id: 'party-night-doom', title: 'Party Night - Doom Spot', artistNames: ['Doom Spot', 'Jhon Snow', 'Eddy Brok'], artworkUrl: null, durationSeconds: 187, viewsCount: 455000000 },
   { id: 'endor-spark', title: 'Endor Spark - Repair', artistNames: ['Tarin', 'Kevin', 'Bob Sammy'], artworkUrl: null, durationSeconds: 201, viewsCount: 246000 },
@@ -23,7 +24,7 @@ export const SEARCH_SEED_SONGS: Song[] = [
   { id: 'bolt-strange', title: 'Bolt Strange - All Songs', artistNames: ['Tarin'], artworkUrl: null, durationSeconds: 205, viewsCount: 132000 },
 ];
 
-export const SEARCH_SEED_ARTISTS: Artist[] = [
+export const SEARCH_SEED_ARTISTS: Omit<Artist, 'status' | 'createdAt'>[] = [
   { id: 'emmy-stark', name: 'Emmy Stark', avatarUrl: null, followersCount: 1200000 },
   { id: 'doom-spot', name: 'Doom Spot', avatarUrl: null, followersCount: 845000 },
   { id: 'jhon-snow', name: 'Jhon Snow', avatarUrl: null, followersCount: 2400000 },

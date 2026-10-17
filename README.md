@@ -84,6 +84,15 @@ See `.env.example` for a ready-to-copy template.
 | `npm run start` | Run the compiled app from `dist/` (`node dist/main.js`) |
 | `npm run build` | Compile TypeScript with `nest build` into `dist/` |
 | `npm run lint` | Lint `src` and `test` with ESLint |
+| `npm test` | Unit tests (`src/**/*.spec.ts`) |
+| `npm run test:e2e` | API tests (`test/**/*.e2e-spec.ts`) against a real Postgres. Needs `TEST_DATABASE_URL` pointing at a **disposable** database: the schema is dropped on every run. |
+
+Example for the e2e tests with a throwaway container:
+
+```bash
+docker run -d --name music-backend-test-pg -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=music_app_test -p 127.0.0.1:5544:5432 postgres:16-alpine
+TEST_DATABASE_URL=postgres://postgres:postgres@127.0.0.1:5544/music_app_test npm run test:e2e
+```
 
 ## Authentication
 
@@ -164,6 +173,31 @@ Unguarded routes are marked "Public"; everything else requires the `Authorizatio
 | --- | --- | --- | --- |
 | GET | `/api/subscription` | Required | Current subscription (`planId`, `status`, `startedAt`, `expiresAt`). Returns an implicit `free`/`active` subscription if none exists yet. |
 | POST | `/api/subscription/cancel` | Required | Cancels the active subscription. `400` if there isn't one. |
+
+### Plays
+
+| Method | Path | Auth | Description |
+| --- | --- | --- | --- |
+| POST | `/api/plays` | Required | Body: `{ "songId": string }`. Records one play for the caller (`404` for an unknown song). Every listening metric on the admin dashboard is built from these rows. |
+
+### Admin dashboard
+
+All routes need a token **and** a stored role of `admin` or `superAdmin` (`403` otherwise). Results are cached in
+Redis for 60 seconds. "Window" means the last 30 days, compared with the 30 days before it. Day and hour buckets are UTC.
+
+| Method | Path | Description |
+| --- | --- | --- |
+| GET | `/admin/dashboard/stats` | Totals for users, songs, artists and plays, with % change and a 10-month trend. |
+| GET | `/admin/dashboard/activity?period=12M` | Plays over time. `period` is `12M` (default), `6M` (monthly points) or `30D` (daily points). |
+| GET | `/admin/dashboard/active-days` | Window plays per weekday, Mon to Sun. |
+| GET | `/admin/dashboard/active-hours` | Window plays per 2-hour slot, `12AM` to `10PM`. |
+| GET | `/admin/dashboard/retention` | Window listeners split into returning (played before the window) and new. |
+| GET | `/admin/dashboard/top-songs?limit=5` | Most played songs in the window, with % change vs the previous window. `limit` 1-50. |
+| GET | `/admin/dashboard/top-artists?limit=5` | Most played artists in the window (plays summed over every song listing them). `limit` 1-50. |
+| GET | `/admin/dashboard/content-overview` | Song counts by `status` (published/pending/draft/rejected) and artist counts by `status` (verified/pending/rejected/blocked). |
+| GET | `/admin/dashboard/recent-activity?limit=10` | Newest user sign-ups, songs and artists, merged by time. Unnamed users show a masked email. `limit` 1-50. |
+| GET | `/admin/dashboard/alerts` | Pending songs, pending artists, failed payments in the last 24h, and Redis health. |
+| GET | `/admin/dashboard/languages` | Share of users by chosen music language: top 4 plus "Other". |
 
 ## Error format
 

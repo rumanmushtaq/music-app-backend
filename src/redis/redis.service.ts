@@ -84,6 +84,15 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
+  // Health probe for the admin dashboard's alerts. Never throws.
+  async ping(): Promise<boolean> {
+    try {
+      return (await this.client.ping()) === 'PONG';
+    } catch {
+      return false;
+    }
+  }
+
   async delByPrefix(prefix: string): Promise<void> {
     try {
       const keys = await this.client.keys(`${prefix}*`);

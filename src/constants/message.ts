@@ -29,6 +29,12 @@ export const CheckoutMessages = {
   payFailed: (orderId: string) => `Failed to process payment for order "${orderId}"`,
 };
 
+export const AdminDashboardMessages = {
+  invalidPeriod: (allowed: readonly string[]) => `period must be one of: ${allowed.join(', ')}`,
+  invalidLimit: (max: number) => `limit must be an integer between 1 and ${max}`,
+  loadSectionFailed: (section: string) => `Failed to load admin dashboard ${section}`,
+};
+
 export const HomeMessages = {
   loadHomeFeedFailed: 'Failed to load home feed',
 };
@@ -46,6 +52,12 @@ export const MusicLanguagesMessages = {
   createLanguageFailed: (name: string) => `Failed to create music language "${name}"`,
   updateLanguageFailed: (id: string) => `Failed to update music language "${id}"`,
   removeLanguageFailed: (id: string) => `Failed to remove music language "${id}"`,
+};
+
+export const PlaysMessages = {
+  songIdRequired: 'songId is required',
+  songNotFound: (id: string) => CommonMessages.notFound('Song', id),
+  recordPlayFailed: (songId: string) => `Failed to record play for song "${songId}"`,
 };
 
 export const PlansMessages = {
