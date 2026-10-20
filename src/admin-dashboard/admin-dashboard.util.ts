@@ -113,3 +113,11 @@ export function parseLimit(raw: string | undefined, fallback: number, max: numbe
   }
   return value;
 }
+
+/** GraphQL counterpart of `parseLimit`: the value is already an Int, so only the range is checked. */
+export function checkLimit(limit: number, max = 50): number {
+  if (!Number.isInteger(limit) || limit < 1 || limit > max) {
+    throw new BadRequestException(AdminDashboardMessages.invalidLimit(max));
+  }
+  return limit;
+}

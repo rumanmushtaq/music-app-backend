@@ -1,8 +1,11 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { GraphQLModule } from '@nestjs/graphql';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import type { ApolloDriverConfig } from '@nestjs/apollo';
 
 import { buildDatabaseConfig } from './config/database.config';
+import { buildGraphqlConfig } from './config/graphql.config';
 import { RedisModule } from './redis/redis.module';
 import { MeController } from './auth/me.controller';
 import { LoginController } from './auth/login.controller';
@@ -24,6 +27,7 @@ import { AdminDashboardModule } from './admin-dashboard/admin-dashboard.module';
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     TypeOrmModule.forRoot(buildDatabaseConfig()),
+    GraphQLModule.forRoot<ApolloDriverConfig>(buildGraphqlConfig()),
     RedisModule,
     UsersModule,
     HomeModule,

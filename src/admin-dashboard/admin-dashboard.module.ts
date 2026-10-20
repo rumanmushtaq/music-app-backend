@@ -7,11 +7,12 @@ import { Song } from '../library/song.entity';
 import { Artist } from '../library/artist.entity';
 import { Order } from '../orders/order.entity';
 import { AdminDashboardController } from './admin-dashboard.controller';
+import { AdminDashboardResolver } from './admin-dashboard.resolver';
 import { AdminDashboardService } from './admin-dashboard.service';
 
 @Module({
   imports: [TypeOrmModule.forFeature([User, Song, Artist, Order]), UsersModule],
   controllers: [AdminDashboardController],
-  providers: [AdminDashboardService],
+  providers: [AdminDashboardService, AdminDashboardResolver],
 })
 export class AdminDashboardModule {}
