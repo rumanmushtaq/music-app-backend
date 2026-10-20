@@ -36,6 +36,8 @@ src/
   search/                      GET /api/search, /api/search/moods — static mock data (no DB)
   ai-search/                   POST /api/ai-search — deterministic mock "AI mix" generator (no DB, no LLM call)
   library/                     Song/Artist/Playlist entities, seeded on boot, GET /api/library
+  admin-dashboard/             Admin dashboard: REST controller, GraphQL resolver + models, shared service
+  config/graphql.config.ts     GraphQL (Apollo) server settings, shared by app.module.ts and the e2e tests
   common/                      Global exception filter, tax lookup table, email masking helper
 ```
 
@@ -198,6 +200,42 @@ Redis for 60 seconds. "Window" means the last 30 days, compared with the 30 days
 | GET | `/admin/dashboard/recent-activity?limit=10` | Newest user sign-ups, songs and artists, merged by time. Unnamed users show a masked email. `limit` 1-50. |
 | GET | `/admin/dashboard/alerts` | Pending songs, pending artists, failed payments in the last 24h, and Redis health. |
 | GET | `/admin/dashboard/languages` | Share of users by chosen music language: top 4 plus "Other". |
+
+## GraphQL
+
+The admin dashboard is also available over GraphQL, next to the REST routes above.
+
+- Endpoint: `POST /graphql`
+- Auth: the same `Authorization: Bearer <clerk-session-token>` header, and the same admin/superAdmin role rule.
+- Schema: code-first, generated from `src/admin-dashboard/admin-dashboard.models.ts`. Introspection is on
+  unless `NODE_ENV=production`. There is no playground.
+- Every query calls the same service method as its REST route, so results and the 60-second Redis cache are shared.
+
+| Query | REST equivalent |
+| --- | --- |
+| `dashboardStats` | `GET /admin/dashboard/stats` |
+| `dashboardActivity(period: ActivityPeriod = TWELVE_MONTHS)` | `GET /admin/dashboard/activity` (`TWELVE_MONTHS`, `SIX_MONTHS`, `THIRTY_DAYS` = `12M`, `6M`, `30D`) |
+| `activeDays` | `GET /admin/dashboard/active-days` |
+| `activeHours` | `GET /admin/dashboard/active-hours` |
+| `retention` | `GET /admin/dashboard/retention` |
+| `topSongs(limit: Int = 5)` | `GET /admin/dashboard/top-songs` (`limit` 1-50) |
+| `topArtists(limit: Int = 5)` | `GET /admin/dashboard/top-artists` (`limit` 1-50) |
+| `contentOverview` | `GET /admin/dashboard/content-overview` |
+| `recentActivity(limit: Int = 10)` | `GET /admin/dashboard/recent-activity` (`limit` 1-50) |
+| `platformAlerts` | `GET /admin/dashboard/alerts` |
+| `languages` | `GET /admin/dashboard/languages` |
+
+Example:
+
+```bash
+curl -X POST http://localhost:4000/graphql \
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{"query":"{ dashboardStats { key value change changeType } retention { rate } }"}'
+```
+
+Errors come back with HTTP 200 and an `errors` array. Each error has only `message`, `locations`, `path` and
+`extensions.code`: `UNAUTHENTICATED` (missing or invalid token), `FORBIDDEN` (not an admin), `BAD_REQUEST`
+(for example `limit` outside 1-50), `INTERNAL_SERVER_ERROR` (unexpected; the real error is only in server logs).
 
 ## Error format
 
