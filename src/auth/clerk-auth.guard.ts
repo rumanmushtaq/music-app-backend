@@ -1,8 +1,8 @@
 import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
 import { createClerkClient, verifyToken } from '@clerk/backend';
-import type { Request } from 'express';
 
 import { AuthMessages } from '../constants/message';
+import { requestFromContext } from './request-from-context';
 
 export type AuthClaims = {
   userId: string;
@@ -22,7 +22,7 @@ const DEV_CLOCK_SKEW_MS = Number(process.env.CLERK_DEV_CLOCK_SKEW_MS ?? 0) || un
 @Injectable()
 export class ClerkAuthGuard implements CanActivate {
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const request = context.switchToHttp().getRequest<Request & { auth?: AuthClaims }>();
+    const request = requestFromContext(context);
     const header = request.headers.authorization;
     const token = header?.startsWith('Bearer ') ? header.slice('Bearer '.length) : undefined;
 

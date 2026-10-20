@@ -1,4 +1,5 @@
 import { CallHandler, ExecutionContext, HttpException, Injectable, Logger, NestInterceptor } from '@nestjs/common';
+import type { GqlContextType } from '@nestjs/graphql';
 import type { Request, Response } from 'express';
 import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
@@ -29,6 +30,12 @@ export class LoggingInterceptor implements NestInterceptor {
   private readonly logger = new Logger('HTTP');
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
+    // A GraphQL resolver has no HTTP request/response at switchToHttp(), so GraphQL calls are
+    // not logged here.
+    if (context.getType<GqlContextType>() === 'graphql') {
+      return next.handle();
+    }
+
     const request = context.switchToHttp().getRequest<AuthedRequest>();
     const response = context.switchToHttp().getResponse<Response>();
     const start = Date.now();

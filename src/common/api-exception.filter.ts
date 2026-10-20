@@ -1,4 +1,13 @@
-import { ArgumentsHost, Catch, ExceptionFilter, HttpException, HttpStatus, Logger } from '@nestjs/common';
+import {
+  ArgumentsHost,
+  Catch,
+  ExceptionFilter,
+  HttpException,
+  HttpStatus,
+  InternalServerErrorException,
+  Logger,
+} from '@nestjs/common';
+import type { GqlContextType } from '@nestjs/graphql';
 import type { Response } from 'express';
 
 import { CommonMessages } from '../constants/message';
@@ -7,7 +16,17 @@ import { CommonMessages } from '../constants/message';
 export class ApiExceptionFilter implements ExceptionFilter {
   private readonly logger = new Logger('ApiExceptionFilter');
 
-  catch(exception: unknown, host: ArgumentsHost): void {
+  catch(exception: unknown, host: ArgumentsHost): unknown {
+    // GraphQL has no Express response to write to. Hand the exception back so Apollo turns it
+    // into a GraphQL error - but, same as below, never let an unexpected error's text through.
+    if (host.getType<GqlContextType>() === 'graphql') {
+      if (exception instanceof HttpException) {
+        return exception;
+      }
+      this.logError(exception);
+      return new InternalServerErrorException(CommonMessages.unexpectedError);
+    }
+
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
 
@@ -31,9 +50,13 @@ export class ApiExceptionFilter implements ExceptionFilter {
     // A real bug, not a deliberate HttpException - never forward its message to the
     // client (it can leak internal details like DB constraint text), but keep the
     // full error in server logs so it's still debuggable.
-    this.logger.error(exception instanceof Error ? exception.stack ?? exception.message : exception);
+    this.logError(exception);
     response
       .status(HttpStatus.INTERNAL_SERVER_ERROR)
       .json({ error: { code: 'InternalServerError', message: CommonMessages.unexpectedError } });
+  }
+
+  private logError(exception: unknown): void {
+    this.logger.error(exception instanceof Error ? exception.stack ?? exception.message : exception);
   }
 }

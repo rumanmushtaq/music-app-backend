@@ -1,9 +1,8 @@
 import { createParamDecorator, type ExecutionContext } from '@nestjs/common';
-import type { Request } from 'express';
 
 import type { AuthClaims } from './clerk-auth.guard';
+import { requestFromContext } from './request-from-context';
 
 export const CurrentAuth = createParamDecorator((_data: unknown, context: ExecutionContext): AuthClaims => {
-  const request = context.switchToHttp().getRequest<Request & { auth?: AuthClaims }>();
-  return request.auth as AuthClaims;
+  return requestFromContext(context).auth as AuthClaims;
 });
