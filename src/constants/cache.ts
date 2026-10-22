@@ -39,6 +39,6 @@ export const adminDashboardCacheKey = (section: string, param?: string | number)
 
 // Backend-driven login (POST /auth/login) bypasses Clerk's own client-side bot/rate
 // protection, so failed attempts are throttled here per email+IP.
-export const LOGIN_ATTEMPT_LIMIT = 5;
-export const LOGIN_ATTEMPT_WINDOW_SECONDS = 10 * 60;
+export const LOGIN_ATTEMPT_LIMIT = Number(process.env.LOGIN_ATTEMPT_LIMIT ?? 5);
+export const LOGIN_ATTEMPT_WINDOW_SECONDS = Number(process.env.LOGIN_ATTEMPT_WINDOW_SECONDS ?? 10 * 60);
 export const loginAttemptsCacheKey = (email: string, ip: string) => `auth:login-attempts:${email}:${ip}`;
