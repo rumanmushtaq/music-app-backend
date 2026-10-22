@@ -15,6 +15,7 @@ export const AuthMessages = {
   emailAndPasswordRequired: 'email and password are required',
   invalidCredentials: 'Invalid email or password',
   tooManyLoginAttempts: 'Too many login attempts. Try again later.',
+  adminLoginRequired: 'This login endpoint is for admin accounts only',
 };
 
 export const CheckoutMessages = {

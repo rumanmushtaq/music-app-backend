@@ -26,7 +26,29 @@ export class LoginController {
     summary: 'Log in with email + password',
     description:
       'Verifies credentials against Clerk and returns a Clerk session bearer token. Paste the returned token into ' +
-      'the "Authorize" button above to call the rest of this API, including [Admin]-tagged endpoints.',
+      'the "Authorize" button above to call the rest of this API.',
+  })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['email', 'password'],
+      properties: {
+        email: { type: 'string', example: 'user@example.com' },
+        password: { type: 'string', example: 'hunter2' },
+      },
+    },
+  })
+  async login(@Body() body: LoginBody, @Req() request: Request) {
+    return this.authenticate(body, request);
+  }
+
+  @Post('admin/login')
+  @ApiOperation({
+    summary: 'Admin log in with email + password',
+    description:
+      'Verifies credentials against Clerk and returns a Clerk session bearer token. ' +
+      'Only accounts with role "admin" or "superAdmin" are accepted. ' +
+      'Paste the returned token into the "Authorize" button above to call [Admin]-tagged endpoints.',
   })
   @ApiBody({
     schema: {
@@ -38,7 +60,15 @@ export class LoginController {
       },
     },
   })
-  async login(@Body() body: LoginBody, @Req() request: Request) {
+  async adminLogin(@Body() body: LoginBody, @Req() request: Request) {
+    const result = await this.authenticate(body, request);
+    if (result.user.role !== 'admin' && result.user.role !== 'superAdmin') {
+      throw new ForbiddenException(AuthMessages.adminLoginRequired);
+    }
+    return result;
+  }
+
+  private async authenticate(body: LoginBody, request: Request) {
     const email = body?.email?.trim().toLowerCase();
     const password = body?.password;
     if (!email || !password) {
