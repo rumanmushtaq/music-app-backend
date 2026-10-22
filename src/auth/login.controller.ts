@@ -8,7 +8,7 @@ import { RedisService } from '../redis/redis.service';
 import { AuthMessages } from '../constants/message';
 import { LOGIN_ATTEMPT_LIMIT, LOGIN_ATTEMPT_WINDOW_SECONDS, loginAttemptsCacheKey } from '../constants/cache';
 
-type LoginBody = { email?: string; password?: string };
+type LoginBody = { email?: string; password?: string; rememberMe?: boolean };
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -39,16 +39,17 @@ export class LoginController {
     },
   })
   async login(@Body() body: LoginBody, @Req() request: Request) {
-    return this.authenticate(body, request);
+    const { token, user } = await this.authenticate(body, request);
+    return { token, user };
   }
 
   @Post('admin/login')
   @ApiOperation({
     summary: 'Admin log in with email + password',
     description:
-      'Verifies credentials against Clerk and returns a Clerk session bearer token. ' +
-      'Only accounts with role "admin" or "superAdmin" are accepted. ' +
-      'Paste the returned token into the "Authorize" button above to call [Admin]-tagged endpoints.',
+      'Verifies credentials against Clerk. Only "admin" / "superAdmin" roles accepted. ' +
+      'rememberMe=true returns both accessToken and refreshToken (Clerk session ID); ' +
+      'rememberMe=false returns accessToken only.',
   })
   @ApiBody({
     schema: {
@@ -57,15 +58,21 @@ export class LoginController {
       properties: {
         email: { type: 'string', example: 'admin@example.com' },
         password: { type: 'string', example: 'hunter2' },
+        rememberMe: { type: 'boolean', example: true },
       },
     },
   })
   async adminLogin(@Body() body: LoginBody, @Req() request: Request) {
-    const result = await this.authenticate(body, request);
-    if (result.user.role !== 'admin' && result.user.role !== 'superAdmin') {
+    const { token, sessionId, user } = await this.authenticate(body, request);
+    if (user.role !== 'admin' && user.role !== 'superAdmin') {
       throw new ForbiddenException(AuthMessages.adminLoginRequired);
     }
-    return result;
+
+    const base = { accessToken: token, user };
+    if (body.rememberMe) {
+      return { ...base, refreshToken: sessionId };
+    }
+    return base;
   }
 
   private async authenticate(body: LoginBody, request: Request) {
@@ -102,6 +109,6 @@ export class LoginController {
         ?? email;
     const user = await this.usersService.upsertByClerkId(clerkUser.id, primaryEmail);
 
-    return { token: jwt, user: { id: user.id, email: user.email, role: user.role } };
+    return { token: jwt, sessionId: session.id, user: { id: user.id, email: user.email, role: user.role } };
   }
 }
